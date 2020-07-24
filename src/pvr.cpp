@@ -67,10 +67,6 @@
 // FUNCTION PROTOTYPES
 //---------------------------------------------------------------------------
 
-// API helpers
-//
-static DemuxPacket* demux_alloc(int size);
-
 // Exception helpers
 //
 static void handle_generalexception(char const* function);
@@ -242,15 +238,6 @@ inline struct addon_settings copy_settings(void)
 {
 	std::unique_lock<std::mutex> settings_lock(g_settings_lock);
 	return g_settings;
-}
-
-// demux_alloc (local)
-//
-// Helper function to access PVR API demux packet allocator
-static DemuxPacket* demux_alloc(int size)
-{
-	assert(g_pvr);
-	return g_pvr->AllocateDemuxPacket(size);
 }
 
 // device_connection_to_string (local)
@@ -674,6 +661,8 @@ void ADDON_Destroy(void)
 {
 	// Throw a message out to the Kodi log indicating that the add-on is being unloaded
 	log_notice(__func__, ": ", VERSION_PRODUCTNAME_ANSI, " v", VERSION_VERSION3_ANSI, " unloading");
+
+	g_pvrstream.reset();					// Destroy any active stream instance
 
 	// Check for more than just the global connection pool reference during shutdown,
 	// there shouldn't still be any active callbacks running during ADDON_Destroy
@@ -1998,7 +1987,10 @@ void DemuxFlush(void)
 
 DemuxPacket* DemuxRead(void)
 {
-	try { return (g_pvrstream) ? g_pvrstream->demuxread(demux_alloc) : nullptr; }
+	if(!g_pvrstream) return nullptr;
+
+	// Use an inline lambda to provide the stream an std::function to use to invoke AllocateDemuxPacket()
+	try { return g_pvrstream->demuxread([&](int size) -> DemuxPacket* { return g_pvr->AllocateDemuxPacket(size); }); }
 
 	catch(std::exception& ex) {
 
