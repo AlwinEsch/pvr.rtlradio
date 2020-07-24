@@ -107,6 +107,31 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "xml", "xml", "{880E452A-4A3
 		pvr.rtlradio\resources\skins\skin.estuary\xml\channelsettings.xml = pvr.rtlradio\resources\skins\skin.estuary\xml\channelsettings.xml
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "resource.language.en_ca", "resource.language.en_ca", "{3FF6EFFD-4F6E-4543-9213-9594C0ABB5B2}"
+	ProjectSection(SolutionItems) = preProject
+		pvr.rtlradio\resources\language\resource.language.en_ca\strings.po = pvr.rtlradio\resources\language\resource.language.en_ca\strings.po
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "resource.language.fr_ca", "resource.language.fr_ca", "{AD3F3BCE-F835-4574-A84C-C363E6B9E484}"
+	ProjectSection(SolutionItems) = preProject
+		pvr.rtlradio\resources\language\resource.language.fr_ca\strings.po = pvr.rtlradio\resources\language\resource.language.fr_ca\strings.po
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "resource.language.es_us", "resource.language.es_us", "{D4E701C3-C447-4DE3-AB6D-EA0DA4999762}"
+	ProjectSection(SolutionItems) = preProject
+		pvr.rtlradio\resources\language\resource.language.es_us\strings.po = pvr.rtlradio\resources\language\resource.language.es_us\strings.po
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "resource.language.en_us", "resource.language.en_us", "{6176C83F-367A-4067-B1F3-A59EDC72D641}"
+	ProjectSection(SolutionItems) = preProject
+		pvr.rtlradio\resources\language\resource.language.en_us\strings.po = pvr.rtlradio\resources\language\resource.language.en_us\strings.po
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "resource.language.es_mx", "resource.language.es_mx", "{903A97D0-A007-43B4-947E-95A14004F103}"
+	ProjectSection(SolutionItems) = preProject
+		pvr.rtlradio\resources\language\resource.language.es_mx\strings.po = pvr.rtlradio\resources\language\resource.language.es_mx\strings.po
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -210,6 +235,11 @@ Global
 		{14685018-1D53-45C5-BCF5-D9D2074AB355} = {AE3C3D3D-5525-4E65-9944-3CFF8718778F}
 		{6B20BC22-7114-4DC6-BC1A-203C9078F5E5} = {14685018-1D53-45C5-BCF5-D9D2074AB355}
 		{880E452A-4A32-4A49-A911-183912652C33} = {6B20BC22-7114-4DC6-BC1A-203C9078F5E5}
+		{3FF6EFFD-4F6E-4543-9213-9594C0ABB5B2} = {AB93AD67-82B8-4012-9299-C301D583CAE2}
+		{AD3F3BCE-F835-4574-A84C-C363E6B9E484} = {AB93AD67-82B8-4012-9299-C301D583CAE2}
+		{D4E701C3-C447-4DE3-AB6D-EA0DA4999762} = {AB93AD67-82B8-4012-9299-C301D583CAE2}
+		{6176C83F-367A-4067-B1F3-A59EDC72D641} = {AB93AD67-82B8-4012-9299-C301D583CAE2}
+		{903A97D0-A007-43B4-947E-95A14004F103} = {AB93AD67-82B8-4012-9299-C301D583CAE2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CDFD4BDC-0976-4BCA-B61E-33B151C24682}

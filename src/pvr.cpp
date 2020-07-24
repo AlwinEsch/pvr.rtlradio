@@ -253,6 +253,26 @@ static std::string device_connection_to_string(enum device_connection connection
 
 	return "Unknown";
 }
+
+// get_regional_rds_standard (local)
+//
+// Figures out whether or not RDS or RBDS should be used in this region
+enum rds_standard get_regional_rds_standard(enum rds_standard standard)
+{
+	assert(g_addon);
+
+	// If the standard isn't set to automatic, just regurgitate it
+	if(standard != rds_standard::automatic) return standard;
+
+	// To figure this out on Kodi Leia, I used localized strings that will
+	// indicate "rbds" for North American specific locales.  This is imperfect
+	// as it doesn't appear that en_ca and es_us are able to be set, but it's
+	// seemingly as close as I'm going to get for now ...
+
+	char* rdsregion = g_addon->GetLocalizedString(30600);
+	return (strcmp(rdsregion, "rbds") == 0) ? rds_standard::rbds : rds_standard::rds;
+}
+
 // handle_generalexception (local)
 //
 // Handler for thrown generic exceptions
@@ -1595,13 +1615,6 @@ PVR_ERROR UpdateTimer(PVR_TIMER const& /*timer*/)
 
 bool OpenLiveStream(PVR_CHANNEL const& channel)
 {
-	//
-	// TODO: This doesn't seem that easy to do in Leia, but should be in Matrix ... need to
-	// determine how to handle the "automatic" RDS standard.  The addon General interface has
-	// the ability to get the current language settings (like en-us, en-ca, etc), if there
-	// is a Mexico suffix (mx?) the default can be set by looking for -us, -ca, or -mx
-	//
-
 	// Create a copy of the current addon settings structure
 	struct addon_settings settings = copy_settings();
 
@@ -1618,8 +1631,7 @@ bool OpenLiveStream(PVR_CHANNEL const& channel)
 		// Set up the FM digital signal processor properties
 		struct fmprops fmprops = {};
 		fmprops.decoderds = settings.fmradio_enable_rds;
-		if(settings.fmradio_rds_standard == rds_standard::automatic) fmprops.isrbds = true;		// <-- See above TODO
-		else fmprops.isrbds = (settings.fmradio_rds_standard == rds_standard::rbds);
+		fmprops.isrbds = (get_regional_rds_standard(settings.fmradio_rds_standard) == rds_standard::rbds);
 		fmprops.outputrate = settings.fmradio_output_samplerate;
 
 		// USB device

@@ -1,0 +1,11 @@
+# Kodi Media Center language file
+# Addon Name: RTL-SDR Radio PVR Client
+# Addon id: pvr.rtlradio
+# Addon Provider: djp952
+msgid ""
+msgstr ""
+
+msgctxt "#30600"
+msgid "rds"
+msgstr "rbds"
+

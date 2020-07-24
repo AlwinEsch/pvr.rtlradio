@@ -5,7 +5,12 @@
   <file path="pvr.rtlradio\librtlradio.so" source="out\android-x86\x86\librtlradio.so"/>
   <file path="pvr.rtlradio\resources\icon.png" source="pvr.rtlradio\resources\icon.png"/>
   <file path="pvr.rtlradio\resources\settings.xml" source="pvr.rtlradio\resources\settings.xml" normalize="unix"/>
+  <file path="pvr.rtlradio\resources\language\resource.language.en_ca\strings.po" source="pvr.rtlradio\resources\language\resource.language.en_ca\strings.po" normalize="unix"/>
   <file path="pvr.rtlradio\resources\language\resource.language.en_gb\strings.po" source="pvr.rtlradio\resources\language\resource.language.en_gb\strings.po" normalize="unix"/>
+  <file path="pvr.rtlradio\resources\language\resource.language.en_us\strings.po" source="pvr.rtlradio\resources\language\resource.language.en_us\strings.po" normalize="unix"/>
+  <file path="pvr.rtlradio\resources\language\resource.language.es_mx\strings.po" source="pvr.rtlradio\resources\language\resource.language.es_mx\strings.po" normalize="unix"/>
+  <file path="pvr.rtlradio\resources\language\resource.language.es_us\strings.po" source="pvr.rtlradio\resources\language\resource.language.es_us\strings.po" normalize="unix"/>
+  <file path="pvr.rtlradio\resources\language\resource.language.fr_ca\strings.po" source="pvr.rtlradio\resources\language\resource.language.fr_ca\strings.po" normalize="unix"/>
   <file path="pvr.rtlradio\resources\skins\skin.estuary\xml\channeladd.xml" source="pvr.rtlradio\resources\skins\skin.estuary\xml\channeladd.xml" normalize="unix"/>
   <file path="pvr.rtlradio\resources\skins\skin.estuary\xml\channelscan.xml" source="pvr.rtlradio\resources\skins\skin.estuary\xml\channelscan.xml" normalize="unix"/>
   <file path="pvr.rtlradio\resources\skins\skin.estuary\xml\channelsettings.xml" source="pvr.rtlradio\resources\skins\skin.estuary\xml\channelsettings.xml" normalize="unix"/>
