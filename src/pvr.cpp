@@ -1024,6 +1024,8 @@ PVR_ERROR GetChannelGroups(ADDON_HANDLE handle, bool radio)
 
 	// FM Radio
 	snprintf(group.strGroupName, std::extent<decltype(group.strGroupName)>::value, "FM Radio");
+	group.bIsRadio = true;
+
 	g_pvr->TransferChannelGroup(handle, &group);
 
 	return PVR_ERROR::PVR_ERROR_NO_ERROR;
@@ -1044,6 +1046,9 @@ PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, PVR_CHANNEL_GROUP const& g
 	assert(g_pvr);
 
 	if(handle == nullptr) return PVR_ERROR::PVR_ERROR_INVALID_PARAMETERS;
+
+	// Only interested in radio channel groups
+	if(!group.bIsRadio) return PVR_ERROR::PVR_ERROR_NO_ERROR;
 
 	// There is currently only one channel group enumerator - "FM Radio"
 	std::function<void(sqlite3*, enumerate_channels_callback)> enumerator = nullptr;
@@ -1741,7 +1746,8 @@ long long LengthLiveStream(void)
 
 PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS& status)
 {
-	if(!g_pvrstream) return PVR_ERROR::PVR_ERROR_FAILED;
+	// Kodi may call this function before the stream is open, avoid the error log
+	if(!g_pvrstream) return PVR_ERROR::PVR_ERROR_NO_ERROR;
 
 	snprintf(status.strAdapterName, std::extent<decltype(status.strAdapterName)>::value, "%s", g_pvrstream->devicename().c_str());
 	snprintf(status.strAdapterStatus, std::extent<decltype(status.strAdapterStatus)>::value, "Active");
