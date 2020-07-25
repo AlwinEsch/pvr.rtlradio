@@ -23,6 +23,7 @@
 #include "stdafx.h"
 
 #include <memory>
+#include <mutex>
 #include <string>
 
 #define USE_DEMUX
@@ -44,7 +45,9 @@
 #include "dialogchannelsettings.h"
 #include "fmstream.h"
 #include "pvrstream.h"
+#include "rtldevice.h"
 #include "scanner.h"
+#include "scheduler.h"
 #include "string_exception.h"
 #include "sqlite_exception.h"
 #include "usbdevice.h"
@@ -67,6 +70,10 @@
 // FUNCTION PROTOTYPES
 //---------------------------------------------------------------------------
 
+// Device helpers
+//
+static std::shared_ptr<rtldevice> get_device(struct addon_settings const& settings);
+
 // Exception helpers
 //
 static void handle_generalexception(char const* function);
@@ -81,6 +88,10 @@ template<typename... _args> static void log_error(_args&&... args);
 template<typename... _args> static void log_info(_args&&... args);
 template<typename... _args>	static void log_message(ADDON::addon_log_t level, _args&&... args);
 template<typename... _args> static void log_notice(_args&&... args);
+
+// Scheduled Tasks
+//
+static void release_device_task(scalar_condition<bool> const& cancel);
 
 //---------------------------------------------------------------------------
 // TYPE DECLARATIONS
@@ -188,6 +199,16 @@ static const PVR_ADDON_CAPABILITIES g_capabilities = {
 // Global SQLite database connection pool instance
 static std::shared_ptr<connectionpool> g_connpool;
 
+// g_device
+//
+// Active RTL-SDR device instance
+static std::shared_ptr<rtldevice> g_device;
+
+// g_device_lock
+//
+// Synchronization object
+static std::mutex g_device_lock;
+
 // g_gui
 //
 // Kodi GUI library callbacks
@@ -202,6 +223,16 @@ static std::unique_ptr<CHelper_libXBMC_pvr> g_pvr;
 //
 // DVR stream buffer instance
 static std::unique_ptr<pvrstream> g_pvrstream;
+
+// g_pvrstream_lock
+//
+// Synchronization object
+static std::mutex g_pvrstream_lock;
+
+// g_scheduler
+//
+// Task scheduler
+static scheduler g_scheduler([](std::exception const& ex) -> void { handle_stdexception("scheduled task", ex); });
 
 // g_settings
 //
@@ -252,6 +283,35 @@ static std::string device_connection_to_string(enum device_connection connection
 	}
 
 	return "Unknown";
+}
+
+// get_device (local)
+//
+// Acquires the RTL-SDR device instance to be accessed
+static std::shared_ptr<rtldevice> get_device(struct addon_settings const& settings)
+{
+	std::unique_lock<std::mutex> lock(g_device_lock);
+
+	// If the cached device instance is still valid, use that. Otherwise create a
+	// new instance to be cached and returned for use for the caller
+	if(!g_device) {
+
+		// USB device
+		if(settings.device_connection == device_connection::usb)
+			g_device = usbdevice::create(settings.device_connection_usb_index);
+
+		// Network device
+		else if(settings.device_connection == device_connection::rtltcp)
+			g_device = tcpdevice::create(settings.device_connection_tcp_host.c_str(), static_cast<uint16_t>(settings.device_connection_tcp_port));
+
+		// Unknown device type
+		else throw string_exception("invalid device_connection type specified");
+	}
+
+	// Schedule a task to automatically release the cached device when it's no longer in use
+	g_scheduler.add(std::chrono::system_clock::now() + std::chrono::seconds(30), release_device_task);
+
+	return g_device;
 }
 
 // get_regional_rds_standard (local)
@@ -367,21 +427,6 @@ template<typename... _args>
 static void log_notice(_args&&... args)
 {
 	log_message(ADDON::addon_log_t::LOG_NOTICE, std::forward<_args>(args)...);
-}
-
-// rds_standard_to_string (local)
-//
-// Converts an rds_standard enumeration value into a string
-static std::string rds_standard_to_string(enum rds_standard mode)
-{
-	switch(mode) {
-
-		case rds_standard::automatic: return "Automatic";
-		case rds_standard::rds: return "World (RDS)";
-		case rds_standard::rbds: return "North America (RBDS)";
-	}
-
-	return "Unknown";
 }
 
 // menuhook_clearchannels (local)
@@ -527,6 +572,37 @@ static void menuhook_importchannels(void)
 	}
 }
 
+// rds_standard_to_string (local)
+//
+// Converts an rds_standard enumeration value into a string
+static std::string rds_standard_to_string(enum rds_standard mode)
+{
+	switch(mode) {
+
+		case rds_standard::automatic: return "Automatic";
+		case rds_standard::rds: return "World (RDS)";
+		case rds_standard::rbds: return "North America (RBDS)";
+	}
+
+	return "Unknown";
+}
+
+// release_device_task (private)
+//
+// Scheduled task implementation to release the cached rtldevice instance
+static void release_device_task(scalar_condition<bool> const& /*cancel*/)
+{
+	std::unique_lock<std::mutex> lock(g_device_lock);
+
+	// If there is only one reference against the cached device instance, it's
+	// no longer being actively used.  Release the cached reference so that
+	// a network rtl_tcp server will disconnect, a USB device can be removed, etc
+	if(g_device.use_count() == 1) g_device.reset();
+
+	// If the device is still in use, check back in 30 seconds
+	else g_scheduler.add(std::chrono::system_clock::now() + std::chrono::seconds(30), release_device_task);
+}
+
 //---------------------------------------------------------------------------
 // KODI ADDON ENTRY POINTS
 //---------------------------------------------------------------------------
@@ -643,6 +719,10 @@ ADDON_STATUS ADDON_Create(void* handle, void* props)
 						log_error(__func__, ": unable to create/open the channels database ", databasefile, " - ", dbex.what());
 						throw;
 					}
+
+					// Start the task scheduler
+					try { g_scheduler.start(); }
+					catch(...) { g_connpool.reset(); throw; }
 				}
 
 				// Clean up the pvr callbacks instance on exception
@@ -683,6 +763,15 @@ void ADDON_Destroy(void)
 	log_notice(__func__, ": ", VERSION_PRODUCTNAME_ANSI, " v", VERSION_VERSION3_ANSI, " unloading");
 
 	g_pvrstream.reset();					// Destroy any active stream instance
+	g_scheduler.stop();						// Stop the task scheduler
+	g_scheduler.clear();					// Clear all tasks from the scheduler
+
+	// Check for more than just the cached device reference during shutdown
+	long devicerefs = g_device.use_count();
+	if(devicerefs > 1) log_notice(__func__, ": warning: g_device.use_count = ", g_device.use_count());
+	g_device.reset();
+
+	// Check for more than just the global connection pool reference during shutdown
 
 	// Check for more than just the global connection pool reference during shutdown,
 	// there shouldn't still be any active callbacks running during ADDON_Destroy
@@ -734,6 +823,14 @@ ADDON_STATUS ADDON_SetSetting(char const* name, void const* value)
 {
 	std::unique_lock<std::mutex> settings_lock(g_settings_lock);
 
+	// When the device type or properties have changed, any cached device instance must be
+	// released so that the setting can take effect with the next access of the device
+	auto on_device_switch = [&](void) -> void {
+
+		std::unique_lock<std::mutex> lock(g_device_lock);
+		g_device.reset();
+	};
+
 	// device_connection
 	//
 	if(strcmp(name, "device_connection") == 0) {
@@ -743,6 +840,8 @@ ADDON_STATUS ADDON_SetSetting(char const* name, void const* value)
 
 			g_settings.device_connection = static_cast<enum device_connection>(nvalue);
 			log_notice(__func__, ": setting device_connection changed to ", device_connection_to_string(g_settings.device_connection).c_str());
+
+			on_device_switch();					// Device settings have changed
 		}
 	}
 
@@ -755,6 +854,8 @@ ADDON_STATUS ADDON_SetSetting(char const* name, void const* value)
 
 			g_settings.device_connection_usb_index = nvalue;
 			log_notice(__func__, ": setting device_connection_usb_index changed to ", g_settings.device_connection_usb_index);
+
+			on_device_switch();					// Device settings have changed
 		}
 	}
 
@@ -766,6 +867,8 @@ ADDON_STATUS ADDON_SetSetting(char const* name, void const* value)
 
 			g_settings.device_connection_tcp_host.assign(reinterpret_cast<char const*>(value));
 			log_notice(__func__, ": setting device_connection_tcp_host changed to ", g_settings.device_connection_tcp_host.c_str());
+
+			on_device_switch();					// Device settings have changed
 		}
 	}
 
@@ -778,6 +881,8 @@ ADDON_STATUS ADDON_SetSetting(char const* name, void const* value)
 
 			g_settings.device_connection_tcp_port = nvalue;
 			log_notice(__func__, ": setting device_connection_tcp_port changed to ", g_settings.device_connection_tcp_port);
+
+			on_device_switch();					// Device settings have changed
 		}
 	}
 
@@ -1615,6 +1720,8 @@ PVR_ERROR UpdateTimer(PVR_TIMER const& /*timer*/)
 
 bool OpenLiveStream(PVR_CHANNEL const& channel)
 {
+	std::unique_lock<std::mutex> lock(g_pvrstream_lock);
+
 	// Create a copy of the current addon settings structure
 	struct addon_settings settings = copy_settings();
 
@@ -1634,24 +1741,8 @@ bool OpenLiveStream(PVR_CHANNEL const& channel)
 		fmprops.isrbds = (get_regional_rds_standard(settings.fmradio_rds_standard) == rds_standard::rbds);
 		fmprops.outputrate = settings.fmradio_output_samplerate;
 
-		// USB device
-		//
-		if(settings.device_connection == device_connection::usb) {
-
-			// TODO: log properties like pvr.hdhomerundvr does
-			g_pvrstream = fmstream::create(usbdevice::create(settings.device_connection_usb_index), channelprops, fmprops);
-		}
-
-		// Network (rtl_tcp) device
-		//
-		else if(settings.device_connection == device_connection::rtltcp) {
-
-			// TODO: log properties like pvr.hdhomerundvr does
-			g_pvrstream = fmstream::create(tcpdevice::create(settings.device_connection_tcp_host.c_str(),
-				static_cast<uint16_t>(settings.device_connection_tcp_port)), channelprops, fmprops);
-		}
-
-		else throw string_exception("invalid device_connection type specified");	
+		// Create the FM radio stream, accessing the cached RTL-SDR device when possible
+		g_pvrstream = fmstream::create(get_device(settings), channelprops, fmprops);
 	}
 
 	// Queue a notification for the user when a live stream cannot be opened, don't just silently log it
@@ -1677,8 +1768,22 @@ bool OpenLiveStream(PVR_CHANNEL const& channel)
 
 void CloseLiveStream(void)
 {
-	try { g_pvrstream.reset(); }
-	catch(std::exception& ex) { return handle_stdexception(__func__, ex); } 
+	std::unique_lock<std::mutex> lock(g_pvrstream_lock);
+
+	if(!g_pvrstream) return;
+
+	try {
+
+		// Before the stream is closed/reset, (re)schedule the task that would release 
+		// the device itself to occur in the future.  There is a chance that it could 
+		// run between a pair of CloseLiveStream/OpenLiveStream operations (channel change) 
+		// and defeat the entire purpose of caching it in the first place
+		g_scheduler.add(std::chrono::system_clock::now() + std::chrono::seconds(30), release_device_task);
+
+		g_pvrstream.reset();				// Release the active PVR stream
+	}
+
+	catch(std::exception& ex) { return handle_stdexception(__func__, ex); }
 	catch(...) { return handle_generalexception(__func__); }
 }
 
@@ -1709,7 +1814,9 @@ int ReadLiveStream(unsigned char* /*buffer*/, unsigned int /*size*/)
 
 long long SeekLiveStream(long long position, int whence)
 {
-	try { return (g_pvrstream) ? g_pvrstream->seek(position, whence) : -1; } 
+	std::unique_lock<std::mutex> lock(g_pvrstream_lock);
+
+	try { return (g_pvrstream) ? g_pvrstream->seek(position, whence) : -1; }
 	catch(std::exception& ex) { return handle_stdexception(__func__, ex, -1); }
 	catch(...) { return handle_generalexception(__func__, -1); }
 }
@@ -1725,6 +1832,8 @@ long long SeekLiveStream(long long position, int whence)
 
 long long PositionLiveStream(void)
 {
+	std::unique_lock<std::mutex> lock(g_pvrstream_lock);
+
 	// Don't report the position for a real-time stream
 	try { return (g_pvrstream && !g_pvrstream->realtime()) ? g_pvrstream->position() : -1; }
 	catch(std::exception& ex) { return handle_stdexception(__func__, ex, -1); }
@@ -1742,7 +1851,9 @@ long long PositionLiveStream(void)
 
 long long LengthLiveStream(void)
 {
-	try { return (g_pvrstream) ? g_pvrstream->length() : -1; } 
+	std::unique_lock<std::mutex> lock(g_pvrstream_lock);
+
+	try { return (g_pvrstream) ? g_pvrstream->length() : -1; }
 	catch(std::exception& ex) { return handle_stdexception(__func__, ex, -1); }
 	catch(...) { return handle_generalexception(__func__, -1); }
 }
@@ -1758,19 +1869,27 @@ long long LengthLiveStream(void)
 
 PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS& status)
 {
+	std::unique_lock<std::mutex> lock(g_pvrstream_lock);
+
 	// Kodi may call this function before the stream is open, avoid the error log
 	if(!g_pvrstream) return PVR_ERROR::PVR_ERROR_NO_ERROR;
 
-	snprintf(status.strAdapterName, std::extent<decltype(status.strAdapterName)>::value, "%s", g_pvrstream->devicename().c_str());
-	snprintf(status.strAdapterStatus, std::extent<decltype(status.strAdapterStatus)>::value, "Active");
-	snprintf(status.strServiceName, std::extent<decltype(status.strServiceName)>::value, "%s", g_pvrstream->servicename().c_str());
-	snprintf(status.strProviderName, std::extent<decltype(status.strProviderName)>::value, "RTL-SDR");
-	snprintf(status.strMuxName, std::extent<decltype(status.strMuxName)>::value, "%s", g_pvrstream->muxname().c_str());
+	try {
 
-	status.iSNR = g_pvrstream->signaltonoise() * 655;			// Range: 0-65535
-	status.iSignal = g_pvrstream->signalstrength() * 655;		// Range: 0-65535
-	status.iBER = 0;
-	status.iUNC = 0;
+		snprintf(status.strAdapterName, std::extent<decltype(status.strAdapterName)>::value, "%s", g_pvrstream->devicename().c_str());
+		snprintf(status.strAdapterStatus, std::extent<decltype(status.strAdapterStatus)>::value, "Active");
+		snprintf(status.strServiceName, std::extent<decltype(status.strServiceName)>::value, "%s", g_pvrstream->servicename().c_str());
+		snprintf(status.strProviderName, std::extent<decltype(status.strProviderName)>::value, "RTL-SDR");
+		snprintf(status.strMuxName, std::extent<decltype(status.strMuxName)>::value, "%s", g_pvrstream->muxname().c_str());
+
+		status.iSNR = g_pvrstream->signaltonoise() * 655;			// Range: 0-65535
+		status.iSignal = g_pvrstream->signalstrength() * 655;		// Range: 0-65535
+		status.iBER = 0;
+		status.iUNC = 0;
+	}
+
+	catch(std::exception& ex) { return handle_stdexception(__func__, ex, PVR_ERROR::PVR_ERROR_FAILED); }
+	catch(...) { return handle_generalexception(__func__, PVR_ERROR::PVR_ERROR_FAILED); }
 
 	return PVR_ERROR::PVR_ERROR_NO_ERROR;
 }
@@ -1832,11 +1951,12 @@ PVR_ERROR GetRecordingStreamProperties(PVR_RECORDING const* /*recording*/, PVR_N
 
 PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES* properties)
 {
-	assert(g_pvrstream);
-
-	properties->iStreamCount = 0;
+	std::unique_lock<std::mutex> lock(g_pvrstream_lock);
+	
+	if(!g_pvrstream) return PVR_ERROR::PVR_ERROR_FAILED;
 
 	// Enumerate the stream properties as specified by the PVR stream instance
+	properties->iStreamCount = 0;
 	g_pvrstream->enumproperties([&](struct streamprops const& props) -> void {
 
 		xbmc_codec_t codecid = g_pvr->GetCodecByName(props.codec);
@@ -1957,6 +2077,8 @@ long long LengthRecordedStream(void)
 
 void DemuxReset(void)
 {
+	std::unique_lock<std::mutex> lock(g_pvrstream_lock);
+
 	try { if(g_pvrstream) g_pvrstream->demuxreset(); }
 	catch(std::exception& ex) { return handle_stdexception(__func__, ex); }
 	catch(...) { return handle_generalexception(__func__); }
@@ -1973,6 +2095,8 @@ void DemuxReset(void)
 
 void DemuxAbort(void)
 {
+	std::unique_lock<std::mutex> lock(g_pvrstream_lock);
+
 	try { if(g_pvrstream) g_pvrstream->demuxabort(); }
 	catch(std::exception& ex) { return handle_stdexception(__func__, ex); }
 	catch(...) { return handle_generalexception(__func__); }
@@ -1989,6 +2113,8 @@ void DemuxAbort(void)
 
 void DemuxFlush(void)
 {
+	std::unique_lock<std::mutex> lock(g_pvrstream_lock);
+
 	try { if(g_pvrstream) g_pvrstream->demuxflush(); }
 	catch(std::exception& ex) { return handle_stdexception(__func__, ex); } 
 	catch(...) { return handle_generalexception(__func__); }
@@ -2005,6 +2131,8 @@ void DemuxFlush(void)
 
 DemuxPacket* DemuxRead(void)
 {
+	std::unique_lock<std::mutex> lock(g_pvrstream_lock);
+
 	if(!g_pvrstream) return nullptr;
 
 	// Use an inline lambda to provide the stream an std::function to use to invoke AllocateDemuxPacket()
@@ -2048,6 +2176,8 @@ bool CanPauseStream(void)
 
 bool CanSeekStream(void)
 {
+	std::unique_lock<std::mutex> lock(g_pvrstream_lock);
+
 	try { return (g_pvrstream) ? g_pvrstream->canseek() : false; }
 	catch(std::exception& ex) { return handle_stdexception(__func__, ex, false); }
 	catch(...) { return handle_generalexception(__func__, false); }
@@ -2134,6 +2264,8 @@ bool IsTimeshifting(void)
 
 bool IsRealTimeStream(void)
 {
+	std::unique_lock<std::mutex> lock(g_pvrstream_lock);
+
 	try { return (g_pvrstream) ? g_pvrstream->realtime() : false; }
 	catch(std::exception& ex) { return handle_stdexception(__func__, ex, false); }
 	catch(...) { return handle_generalexception(__func__, false); }
