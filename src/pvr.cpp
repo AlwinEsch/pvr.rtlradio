@@ -141,6 +141,11 @@ struct addon_settings {
 	// The port number of the rtl_tcp host to connect to
 	int device_connection_tcp_port;
 
+	// interface_prepend_channel_numbers
+	//
+	// Flag to include the channel number in the channel name
+	bool interface_prepend_channel_numbers;
+
 	// fmradio_enable_rds
 	//
 	// Enables passing decoded RDS information to Kodi
@@ -243,6 +248,7 @@ static addon_settings g_settings = {
 	0,									// device_connection_usb_index
 	"",									// device_connection_tcp_host
 	1234,								// device_connection_tcp_port
+	false,								// interface_prepend_channel_numbers
 	true,								// fmradio_enable_rds
 	rds_standard::automatic,			// fmradio_rds_standard
 	48000,								// fmradio_output_samplerate
@@ -667,6 +673,9 @@ ADDON_STATUS ADDON_Create(void* handle, void* props)
 			if(g_addon->GetSetting("device_connection_tcp_host", strvalue)) g_settings.device_connection_tcp_host.assign(strvalue);
 			if(g_addon->GetSetting("device_connection_tcp_port", &nvalue)) g_settings.device_connection_tcp_port = nvalue;
 
+			// Load the interface settings
+			if(g_addon->GetSetting("interface_prepend_channel_numbers", &bvalue)) g_settings.interface_prepend_channel_numbers = bvalue;
+
 			// Load the FM Radio settings
 			if(g_addon->GetSetting("fmradio_enable_rds", &bvalue)) g_settings.fmradio_enable_rds = bvalue;
 			if(g_addon->GetSetting("fmradio_rds_standard", &nvalue)) g_settings.fmradio_rds_standard = static_cast<enum rds_standard>(nvalue);
@@ -883,6 +892,22 @@ ADDON_STATUS ADDON_SetSetting(char const* name, void const* value)
 			log_notice(__func__, ": setting device_connection_tcp_port changed to ", g_settings.device_connection_tcp_port);
 
 			on_device_switch();					// Device settings have changed
+		}
+	}
+
+	// interface_prepend_channel_numbers
+	//
+	else if(strcmp(name, "interface_prepend_channel_numbers") == 0) {
+
+		bool bvalue = *reinterpret_cast<bool const*>(value);
+		if(bvalue != g_settings.interface_prepend_channel_numbers) {
+
+			g_settings.interface_prepend_channel_numbers = bvalue;
+			log_notice(__func__, ": setting interface_prepend_channel_numbers changed to ", (bvalue) ? "true" : "false");
+
+			// Trigger channel and channel group updates to refresh the channel information
+			g_pvr->TriggerChannelUpdate();
+			g_pvr->TriggerChannelGroupsUpdate();
 		}
 	}
 
@@ -1310,7 +1335,13 @@ PVR_ERROR GetChannels(ADDON_HANDLE handle, bool radio)
 			channel.iSubChannelNumber = item.subchannel;
 
 			// strChannelName
-			if(item.name != nullptr) snprintf(channel.strChannelName, std::extent<decltype(channel.strChannelName)>::value, "%s", item.name);
+			if(item.name != nullptr) {
+
+				if(copy_settings().interface_prepend_channel_numbers)
+					snprintf(channel.strChannelName, std::extent<decltype(channel.strChannelName)>::value, "%u.%u %s", item.channel, item.subchannel, item.name);
+
+				else snprintf(channel.strChannelName, std::extent<decltype(channel.strChannelName)>::value, "%s", item.name);
+			}
 
 			// strIconPath
 			if(item.logourl != nullptr) snprintf(channel.strIconPath, std::extent<decltype(channel.strIconPath)>::value, "%s", item.logourl);
