@@ -210,18 +210,6 @@
     <ClInclude Include="tcpdevice.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="dialogchanneladd.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="dialogchannelsettings.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="dialogchannelscan.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="scanner.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -339,18 +327,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="tcpdevice.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="dialogchanneladd.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="dialogchannelsettings.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="dialogchannelscan.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="scanner.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
