@@ -132,6 +132,11 @@ struct addon_settings {
 	// The port number of the rtl_tcp host to connect to
 	int device_connection_tcp_port;
 
+	// device_frequency_correction
+	//
+	// Frequency correction calibration value for the device
+	int device_frequency_correction;
+
 	// interface_prepend_channel_numbers
 	//
 	// Flag to include the channel number in the channel name
@@ -224,6 +229,7 @@ static addon_settings g_settings = {
 	0,									// device_connection_usb_index
 	"",									// device_connection_tcp_host
 	1234,								// device_connection_tcp_port
+	0,									// device_frequency_correction
 	false,								// interface_prepend_channel_numbers
 	true,								// fmradio_enable_rds
 	rds_standard::automatic,			// fmradio_rds_standard
@@ -621,6 +627,7 @@ ADDON_STATUS ADDON_Create(void* handle, void* props)
 			if(g_addon->GetSetting("device_connection_usb_index", &nvalue)) g_settings.device_connection_usb_index = nvalue;
 			if(g_addon->GetSetting("device_connection_tcp_host", strvalue)) g_settings.device_connection_tcp_host.assign(strvalue);
 			if(g_addon->GetSetting("device_connection_tcp_port", &nvalue)) g_settings.device_connection_tcp_port = nvalue;
+			if(g_addon->GetSetting("device_frequency_correction", &nvalue)) g_settings.device_frequency_correction = nvalue;
 
 			// Load the interface settings
 			if(g_addon->GetSetting("interface_prepend_channel_numbers", &bvalue)) g_settings.interface_prepend_channel_numbers = bvalue;
@@ -812,6 +819,18 @@ ADDON_STATUS ADDON_SetSetting(char const* name, void const* value)
 
 			g_settings.device_connection_tcp_port = nvalue;
 			log_notice(__func__, ": setting device_connection_tcp_port changed to ", g_settings.device_connection_tcp_port);
+		}
+	}
+
+	// device_frequency_correction
+	//
+	else if(strcmp(name, "device_frequency_correction") == 0) {
+
+		int nvalue = *reinterpret_cast<int const*>(value);
+		if(nvalue != static_cast<int>(g_settings.device_frequency_correction)) {
+
+			g_settings.device_frequency_correction = nvalue;
+			log_notice(__func__, ": setting device_frequency_correction changed to ", g_settings.device_frequency_correction);
 		}
 	}
 
@@ -1582,6 +1601,10 @@ bool OpenLiveStream(PVR_CHANNEL const& channel)
 
 	try { 
 	
+		// Set up the tuner device properties
+		struct tunerprops tunerprops = {};
+		tunerprops.freqcorrection = settings.device_frequency_correction;
+
 		// Retrieve the tuning properties for the channel from the database
 		struct channelprops channelprops = {};
 		if(!get_channel_properties(connectionpool::handle(g_connpool), channel.iUniqueId, channelprops))
@@ -1597,7 +1620,7 @@ bool OpenLiveStream(PVR_CHANNEL const& channel)
 		fmprops.outputrate = settings.fmradio_output_samplerate;
 
 		// Create the FM radio stream, accessing the cached RTL-SDR device when possible
-		g_pvrstream = fmstream::create(create_device(settings), channelprops, fmprops);
+		g_pvrstream = fmstream::create(create_device(settings), tunerprops, channelprops, fmprops);
 	}
 
 	// Queue a notification for the user when a live stream cannot be opened, don't just silently log it
