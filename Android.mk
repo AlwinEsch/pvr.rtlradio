@@ -84,8 +84,6 @@ LOCAL_SRC_FILES := \
     src/fmdsp/datamodifier.cpp \
     src/fmdsp/demodulator.cpp \
     src/fmdsp/downconvert.cpp \
-    src/fmdsp/fastfir.cpp \
-    src/fmdsp/fft.cpp \
     src/fmdsp/fir.cpp \
     src/fmdsp/fractresampler.cpp \
     src/fmdsp/iir.cpp \

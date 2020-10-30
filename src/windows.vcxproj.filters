@@ -147,9 +147,6 @@
     <ClInclude Include="fmdsp\downconvert.h">
       <Filter>Header Files\fmdsp</Filter>
     </ClInclude>
-    <ClInclude Include="fmdsp\fastfir.h">
-      <Filter>Header Files\fmdsp</Filter>
-    </ClInclude>
     <ClInclude Include="fmdsp\smeter.h">
       <Filter>Header Files\fmdsp</Filter>
     </ClInclude>
@@ -157,9 +154,6 @@
       <Filter>Header Files\fmdsp</Filter>
     </ClInclude>
     <ClInclude Include="fmdsp\fir.h">
-      <Filter>Header Files\fmdsp</Filter>
-    </ClInclude>
-    <ClInclude Include="fmdsp\fft.h">
       <Filter>Header Files\fmdsp</Filter>
     </ClInclude>
     <ClInclude Include="fmdsp\filtercoef.h">
@@ -288,12 +282,6 @@
       <Filter>Source Files\fmdsp</Filter>
     </ClCompile>
     <ClCompile Include="fmdsp\downconvert.cpp">
-      <Filter>Source Files\fmdsp</Filter>
-    </ClCompile>
-    <ClCompile Include="fmdsp\fastfir.cpp">
-      <Filter>Source Files\fmdsp</Filter>
-    </ClCompile>
-    <ClCompile Include="fmdsp\fft.cpp">
       <Filter>Source Files\fmdsp</Filter>
     </ClCompile>
     <ClCompile Include="fmdsp\fir.cpp">
