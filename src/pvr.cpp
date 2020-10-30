@@ -156,6 +156,11 @@ struct addon_settings {
 	//
 	// Specifies the output sample rate for the FM DSP
 	int fmradio_output_samplerate;
+
+	// fm_radio_output_gain
+	//
+	// Specified the output gain for the FM DSP
+	float fmradio_output_gain;
 };
 
 //---------------------------------------------------------------------------
@@ -234,6 +239,7 @@ static addon_settings g_settings = {
 	true,								// fmradio_enable_rds
 	rds_standard::automatic,			// fmradio_rds_standard
 	48000,								// fmradio_output_samplerate
+	-3.0f,								// fmradio_output_gain
 };
 
 // g_settings_lock
@@ -583,6 +589,7 @@ ADDON_STATUS ADDON_Create(void* handle, void* props)
 	PVR_MENUHOOK			menuhook;						// For registering menu hooks
 	bool					bvalue = false;					// Setting value
 	int						nvalue = 0;						// Setting value
+	float					fvalue = 0.0f;					// Setting value
 	char					strvalue[1024] = { '\0' };		// Setting value 
 
 	if((handle == nullptr) || (props == nullptr)) return ADDON_STATUS::ADDON_STATUS_PERMANENT_FAILURE;
@@ -636,6 +643,7 @@ ADDON_STATUS ADDON_Create(void* handle, void* props)
 			if(g_addon->GetSetting("fmradio_enable_rds", &bvalue)) g_settings.fmradio_enable_rds = bvalue;
 			if(g_addon->GetSetting("fmradio_rds_standard", &nvalue)) g_settings.fmradio_rds_standard = static_cast<enum rds_standard>(nvalue);
 			if(g_addon->GetSetting("fmradio_output_samplerate", &nvalue)) g_settings.fmradio_output_samplerate = nvalue;
+			if(g_addon->GetSetting("fmradio_output_gain", &fvalue)) g_settings.fmradio_output_gain = fvalue;
 
 			// Create the global gui callbacks instance
 			g_gui.reset(new CHelper_libKODI_guilib());
@@ -879,10 +887,22 @@ ADDON_STATUS ADDON_SetSetting(char const* name, void const* value)
 	else if(strcmp(name, "fmradio_output_samplerate") == 0) {
 
 		int nvalue = *reinterpret_cast<int const*>(value);
-		if(nvalue != static_cast<int>(g_settings.fmradio_output_samplerate)) {
+		if(nvalue != g_settings.fmradio_output_samplerate) {
 
 			g_settings.fmradio_output_samplerate = nvalue;
 			log_notice(__func__, ": setting fmradio_output_samplerate changed to ", g_settings.fmradio_output_samplerate, "Hz");
+		}
+	}
+
+	// fmradio_output_gain
+	//
+	else if(strcmp(name, "fmradio_output_gain") == 0) {
+
+		float fvalue = *reinterpret_cast<float const*>(value);
+		if(fvalue != g_settings.fmradio_output_gain) {
+
+			g_settings.fmradio_output_gain = fvalue;
+			log_notice(__func__, ": setting fmradio_output_gain changed to ", g_settings.fmradio_output_gain, "dB");
 		}
 	}
 
@@ -1618,6 +1638,7 @@ bool OpenLiveStream(PVR_CHANNEL const& channel)
 		fmprops.decoderds = settings.fmradio_enable_rds;
 		fmprops.isrbds = (get_regional_rds_standard(settings.fmradio_rds_standard) == rds_standard::rbds);
 		fmprops.outputrate = settings.fmradio_output_samplerate;
+		fmprops.outputgain = settings.fmradio_output_gain;
 
 		// Create the FM radio stream, accessing the cached RTL-SDR device when possible
 		g_pvrstream = fmstream::create(create_device(settings), tunerprops, channelprops, fmprops);

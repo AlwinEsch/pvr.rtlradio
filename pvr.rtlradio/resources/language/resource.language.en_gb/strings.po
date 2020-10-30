@@ -68,6 +68,10 @@ msgctxt "#30108"
 msgid "Frequency correction calibration value (PPM)"
 msgstr ""
 
+msgctxt "#30109"
+msgid "PCM output gain"
+msgstr ""
+
 msgctxt "#30200"
 msgid "Universal Serial Bus (USB)"
 msgstr ""
@@ -166,6 +170,10 @@ msgstr ""
 
 msgctxt "#30508"
 msgid "Specifies the frequency correction calibration offset to apply to the RTL-SDR device. If the calibration offset for the device is not known, leave set to the default value 0."
+msgstr ""
+
+msgctxt "#30509"
+msgid "Specifies the FM digital signal processor PCM output audio gain."
 msgstr ""
 
 msgctxt "#30600"
