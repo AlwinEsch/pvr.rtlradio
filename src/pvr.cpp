@@ -2042,8 +2042,17 @@ DemuxPacket* DemuxRead(void)
 {
 	if(!g_pvrstream) return nullptr;
 
-	// Use an inline lambda to provide the stream an std::function to use to invoke AllocateDemuxPacket()
-	try { return g_pvrstream->demuxread([&](int size) -> DemuxPacket* { return g_pvr->AllocateDemuxPacket(size); }); }
+	try { 
+	
+		// Use an inline lambda to provide the stream an std::function to use to invoke AllocateDemuxPacket()
+		DemuxPacket* packet = g_pvrstream->demuxread([&](int size) -> DemuxPacket* { return g_pvr->AllocateDemuxPacket(size); });
+
+		// Log a warning if a stream change packet was detected; this means the application isn't keeping up with the device
+		if((packet != nullptr) && (packet->iStreamId == DMX_SPECIALID_STREAMCHANGE))
+			log_notice(__func__, ": warning: stream buffer has been flushed; device sample rate may need to be reduced");
+		
+		return packet;
+	}
 
 	catch(std::exception& ex) {
 
