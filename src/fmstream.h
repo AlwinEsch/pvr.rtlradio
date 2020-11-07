@@ -24,8 +24,6 @@
 #define __FMSTREAM_H_
 #pragma once
 
-#pragma warning(push, 4)
-
 #include <atomic>
 #include <condition_variable>
 #include <memory>
@@ -41,6 +39,8 @@
 #include "rdsdecoder.h"
 #include "rtldevice.h"
 #include "scalar_condition.h"
+
+#pragma warning(push, 4)
 
 //---------------------------------------------------------------------------
 // Class fmstream
