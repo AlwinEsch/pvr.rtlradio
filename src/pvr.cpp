@@ -182,7 +182,7 @@ static std::unique_ptr<ADDON::CHelper_libXBMC_addon> g_addon;
 // PVR implementation capability flags
 static const PVR_ADDON_CAPABILITIES g_capabilities = {
 
-	false,			// bSupportsEPG
+	true,			// bSupportsEPG
 	false,			// bSupportsEPGEdl
 	false,			// bSupportsTV
 	true,			// bSupportsRadio
@@ -1052,7 +1052,9 @@ PVR_ERROR CallMenuHook(PVR_MENUHOOK const& menuhook, PVR_MENUHOOK_DATA const& /*
 
 PVR_ERROR GetEPGForChannel(ADDON_HANDLE /*handle*/, PVR_CHANNEL const& /*channel*/, time_t /*start*/, time_t /*end*/)
 {
-	return PVR_ERROR::PVR_ERROR_NOT_IMPLEMENTED;
+	// This PVR doesn't support EPG, but on the Leia baseline if it doesn't claim
+	// that it does the radio and TV channels get all mixed up ...
+	return PVR_ERROR::PVR_ERROR_NO_ERROR;
 }
 
 //---------------------------------------------------------------------------
