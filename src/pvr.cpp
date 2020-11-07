@@ -1662,6 +1662,18 @@ bool OpenLiveStream(PVR_CHANNEL const& channel)
 		fmprops.outputrate = settings.fmradio_output_samplerate;
 		fmprops.outputgain = settings.fmradio_output_gain;
 
+		// Log information about the stream for diagnostic purposes
+		log_notice(__func__, ": Creating fmstream for channel \"", channelprops.name, "\"");
+		log_notice(__func__, ": tunerprops.samplerate = ", tunerprops.samplerate, " Hz");
+		log_notice(__func__, ": tunerprops.freqcorrection = ", tunerprops.freqcorrection, " PPM");
+		log_notice(__func__, ": channelprops.frequency = ", channelprops.frequency, " Hz");
+		log_notice(__func__, ": channelprops.autogain = ", (channelprops.autogain) ? "true" : "false");
+		log_notice(__func__, ": channelprops.manualgain = ", channelprops.manualgain / 10, " dB");
+		log_notice(__func__, ": fmprops.decoderds = ", (fmprops.decoderds) ? "true" : "false");
+		log_notice(__func__, ": fmprops.isrbds = ", (fmprops.isrbds) ? "true" : "false");
+		log_notice(__func__, ": fmprops.outputgain = ", fmprops.outputgain, " dB");
+		log_notice(__func__, ": fmprops.outputrate = ", fmprops.outputrate, " Hz");
+
 		// Create the FM radio stream, accessing the cached RTL-SDR device when possible
 		g_pvrstream = fmstream::create(create_device(settings), tunerprops, channelprops, fmprops);
 	}
