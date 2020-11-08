@@ -97,6 +97,16 @@ enum device_connection {
 	rtltcp		= 1,				// Device connected via rtl_tcp
 };
 
+// downsample_quality
+//
+// Defines the FM DSP downsample quality factor
+enum downsample_quality {
+
+	fast		= 0,				// Optimize for speed
+	normal		= 1,				// Balanced between speed and quality
+	optimal		= 2,				// Optimize for quality
+};
+
 // rds_standard
 //
 // Defines the Radio Data System (RDS) standard
@@ -156,6 +166,11 @@ struct addon_settings {
 	//
 	// Specifies the Radio Data System (RDS) standard
 	enum rds_standard fmradio_rds_standard;
+
+	// fmradio_downsample_quality
+	//
+	// Specifies the FM DSP downsample quality factor
+	enum downsample_quality fmradio_downsample_quality;
 
 	// fmradio_output_samplerate
 	//
@@ -244,6 +259,7 @@ static addon_settings g_settings = {
 	false,								// interface_prepend_channel_numbers
 	true,								// fmradio_enable_rds
 	rds_standard::automatic,			// fmradio_rds_standard
+	downsample_quality::optimal,		// fmradio_downsample_quality
 	(48 KHz),							// fmradio_output_samplerate
 	-3.0f,								// fmradio_output_gain
 };
@@ -298,6 +314,21 @@ static std::string device_connection_to_string(enum device_connection connection
 
 		case device_connection::usb: return "USB";
 		case device_connection::rtltcp: return "Network (rtl_tcp)";
+	}
+
+	return "Unknown";
+}
+
+// downsample_quality_to_string (local)
+//
+// Converts a downsample_quality enumeration value into a string
+static std::string downsample_quality_to_string(enum downsample_quality quality)
+{
+	switch(quality) {
+
+		case downsample_quality::fast: return "Fast";
+		case downsample_quality::normal: return "Normal";
+		case downsample_quality::optimal: return "Optimal";
 	}
 
 	return "Unknown";
@@ -649,6 +680,7 @@ ADDON_STATUS ADDON_Create(void* handle, void* props)
 			// Load the FM Radio settings
 			if(g_addon->GetSetting("fmradio_enable_rds", &bvalue)) g_settings.fmradio_enable_rds = bvalue;
 			if(g_addon->GetSetting("fmradio_rds_standard", &nvalue)) g_settings.fmradio_rds_standard = static_cast<enum rds_standard>(nvalue);
+			if(g_addon->GetSetting("fmradio_downsample_quality", &nvalue)) g_settings.fmradio_downsample_quality = static_cast<enum downsample_quality>(nvalue);
 			if(g_addon->GetSetting("fmradio_output_samplerate", &nvalue)) g_settings.fmradio_output_samplerate = nvalue;
 			if(g_addon->GetSetting("fmradio_output_gain", &fvalue)) g_settings.fmradio_output_gain = fvalue;
 
@@ -898,6 +930,18 @@ ADDON_STATUS ADDON_SetSetting(char const* name, void const* value)
 
 			g_settings.fmradio_rds_standard = static_cast<enum rds_standard>(nvalue);
 			log_notice(__func__, ": setting fmradio_rds_standard changed to ", rds_standard_to_string(g_settings.fmradio_rds_standard).c_str());
+		}
+	}
+
+	// fmradio_downsample_quality
+	//
+	else if(strcmp(name, "fmradio_downsample_quality") == 0) {
+
+		int nvalue = *reinterpret_cast<int const*>(value);
+		if(nvalue != static_cast<int>(g_settings.fmradio_downsample_quality)) {
+
+			g_settings.fmradio_downsample_quality = static_cast<enum downsample_quality>(nvalue);
+			log_notice(__func__, ": setting fmradio_downsample_quality changed to ", downsample_quality_to_string(g_settings.fmradio_downsample_quality).c_str());
 		}
 	}
 
@@ -1659,6 +1703,7 @@ bool OpenLiveStream(PVR_CHANNEL const& channel)
 		struct fmprops fmprops = {};
 		fmprops.decoderds = settings.fmradio_enable_rds;
 		fmprops.isrbds = (get_regional_rds_standard(settings.fmradio_rds_standard) == rds_standard::rbds);
+		fmprops.downsamplequality = static_cast<int>(settings.fmradio_downsample_quality);
 		fmprops.outputrate = settings.fmradio_output_samplerate;
 		fmprops.outputgain = settings.fmradio_output_gain;
 
@@ -1671,6 +1716,7 @@ bool OpenLiveStream(PVR_CHANNEL const& channel)
 		log_notice(__func__, ": channelprops.manualgain = ", channelprops.manualgain / 10, " dB");
 		log_notice(__func__, ": fmprops.decoderds = ", (fmprops.decoderds) ? "true" : "false");
 		log_notice(__func__, ": fmprops.isrbds = ", (fmprops.isrbds) ? "true" : "false");
+		log_notice(__func__, ": fmprops.downsamplequality = ", downsample_quality_to_string(static_cast<enum downsample_quality>(fmprops.downsamplequality)));
 		log_notice(__func__, ": fmprops.outputgain = ", fmprops.outputgain, " dB");
 		log_notice(__func__, ": fmprops.outputrate = ", fmprops.outputrate, " Hz");
 
