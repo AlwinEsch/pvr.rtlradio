@@ -93,8 +93,8 @@ template<typename... _args> static void log_notice(_args&&... args);
 // Defines the RTL-SDR device connection type
 enum device_connection {
 
-	usb			= 0,				// Locally connected USB device
-	rtltcp		= 1,				// Device connected via rtl_tcp
+	usb			= 0,		// Locally connected USB device
+	rtltcp		= 1,		// Device connected via rtl_tcp
 };
 
 // downsample_quality
@@ -102,9 +102,9 @@ enum device_connection {
 // Defines the FM DSP downsample quality factor
 enum downsample_quality {
 
-	fast		= 0,				// Optimize for speed
-	normal		= 1,				// Balanced between speed and quality
-	optimal		= 2,				// Optimize for quality
+	fast		= 0,		// Optimize for speed
+	standard	= 1,		// Standard quality
+	maximum		= 2,		// Optimize for quality
 };
 
 // rds_standard
@@ -112,9 +112,9 @@ enum downsample_quality {
 // Defines the Radio Data System (RDS) standard
 enum rds_standard {
 
-	automatic	= 0,				// Automatically detect RDS standard
-	rds			= 1,				// Global RDS standard
-	rbds		= 2,				// North American RBDS standard
+	automatic	= 0,		// Automatically detect RDS standard
+	rds			= 1,		// Global RDS standard
+	rbds		= 2,		// North American RBDS standard
 };
 
 // addon_settings
@@ -254,12 +254,12 @@ static addon_settings g_settings = {
 	0,									// device_connection_usb_index
 	"",									// device_connection_tcp_host
 	1234,								// device_connection_tcp_port
-	(2400 KHz),							// device_sample_rate
+	(1600 KHz),							// device_sample_rate
 	0,									// device_frequency_correction
 	false,								// interface_prepend_channel_numbers
 	true,								// fmradio_enable_rds
 	rds_standard::automatic,			// fmradio_rds_standard
-	downsample_quality::optimal,		// fmradio_downsample_quality
+	downsample_quality::standard,		// fmradio_downsample_quality
 	(48 KHz),							// fmradio_output_samplerate
 	-3.0f,								// fmradio_output_gain
 };
@@ -327,8 +327,8 @@ static std::string downsample_quality_to_string(enum downsample_quality quality)
 	switch(quality) {
 
 		case downsample_quality::fast: return "Fast";
-		case downsample_quality::normal: return "Normal";
-		case downsample_quality::optimal: return "Optimal";
+		case downsample_quality::standard: return "Standard";
+		case downsample_quality::maximum: return "Maximum";
 	}
 
 	return "Unknown";
