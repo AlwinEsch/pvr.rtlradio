@@ -2224,12 +2224,9 @@ bool IsTimeshifting(void)
 
 bool IsRealTimeStream(void)
 {
-	// TODO: Temporarily report incorrectly; I think this is the "speed problem"
-	return false;
-
-	//try { return (g_pvrstream) ? g_pvrstream->realtime() : false; }
-	//catch(std::exception& ex) { return handle_stdexception(__func__, ex, false); }
-	//catch(...) { return handle_generalexception(__func__, false); }
+	try { return (g_pvrstream) ? g_pvrstream->realtime() : false; }
+	catch(std::exception& ex) { return handle_stdexception(__func__, ex, false); }
+	catch(...) { return handle_generalexception(__func__, false); }
 }
 
 //---------------------------------------------------------------------------
