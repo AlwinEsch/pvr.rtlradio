@@ -1831,8 +1831,11 @@ long long LengthLiveStream(void)
 
 PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS& status)
 {
-	// Prevent race condition with OpenLiveStream()/CloseLiveStream()
+	// Prevent race condition with functions that modify g_pvrstream
 	std::unique_lock<std::mutex> lock(g_pvrstream_lock);
+
+	// Initialize the PVR_SIGNAL_STATUS structure, it comes in uninitialized
+	memset(&status, 0, sizeof(PVR_SIGNAL_STATUS));
 
 	// Kodi may call this function before the stream is open, avoid the error log
 	if(!g_pvrstream) return PVR_ERROR::PVR_ERROR_NO_ERROR;
@@ -2086,6 +2089,9 @@ void DemuxFlush(void)
 
 DemuxPacket* DemuxRead(void)
 {
+	// Prevent race condition with SignalStatus()
+	std::unique_lock<std::mutex> lock(g_pvrstream_lock);
+
 	if(!g_pvrstream) return nullptr;
 
 	try { 
