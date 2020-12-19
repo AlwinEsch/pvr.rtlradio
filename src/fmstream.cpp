@@ -457,7 +457,7 @@ std::string fmstream::servicename(void) const
 
 int fmstream::signalstrength(void) const
 {
-	int percent = static_cast<int>(((m_demodulator->GetBasebandLevel() + 64.0) / 64.0) * 100.0);
+	int percent = static_cast<int>(((m_demodulator->GetSignalLevel() + 48.0) / 48.0) * 100.0);
 	return std::max(std::min(percent, 100), 0);
 }
 
@@ -472,7 +472,7 @@ int fmstream::signalstrength(void) const
 
 int fmstream::signaltonoise(void) const
 {
-	int percent = static_cast<int>((m_demodulator->GetSignalToNoiseLevel() / 64.0) * 100.0);
+	int percent = static_cast<int>((m_demodulator->GetSignalToNoiseLevel() / 24.0) * 100.0);
 	return std::max(std::min(percent, 100), 0);
 }
 
@@ -508,7 +508,7 @@ void fmstream::transfer(scalar_condition<bool>& started)
 			for(int index = 0; index < m_demodulator->GetInputBufferLimit(); index++) {
 
 				// The demodulator expects the I/Q samples in the range of -32767.0 through +32767.0
-				// 256.996 = (32767.0 / 127.5) = 256.9960784313725
+				// (32767.0 / 127.5) = 256.9960784313725
 				samples[index] = {
 
 				#ifdef FMDSP_USE_DOUBLE_PRECISION
