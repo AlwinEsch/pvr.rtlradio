@@ -110,7 +110,7 @@
 
         <setting id="fmradio_enable_rds" type="boolean" label="30106" help="30506">
           <level>0</level>
-          <default>true</default>
+          <default>false</default>
           <control type="toggle"/>
         </setting>
         
