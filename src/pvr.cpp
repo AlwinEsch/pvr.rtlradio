@@ -423,7 +423,7 @@ template<typename... _args>
 static void log_message(ADDON::addon_log_t level, _args&&... args)
 {
 	std::ostringstream stream;
-	int unpack[] = {0, ( static_cast<void>(stream << args), 0 ) ... };
+	int unpack[] = { 0, (static_cast<void>(stream << std::boolalpha << args), 0) ... };
 	(void)unpack;
 
 	if(g_addon) g_addon->Log(level, stream.str().c_str());
@@ -901,7 +901,7 @@ ADDON_STATUS ADDON_SetSetting(char const* name, void const* value)
 		if(bvalue != g_settings.interface_prepend_channel_numbers) {
 
 			g_settings.interface_prepend_channel_numbers = bvalue;
-			log_notice(__func__, ": setting interface_prepend_channel_numbers changed to ", (bvalue) ? "true" : "false");
+			log_notice(__func__, ": setting interface_prepend_channel_numbers changed to ", bvalue);
 
 			// Trigger channel and channel group updates to refresh the channel information
 			g_pvr->TriggerChannelUpdate();
@@ -917,7 +917,7 @@ ADDON_STATUS ADDON_SetSetting(char const* name, void const* value)
 		if(bvalue != g_settings.fmradio_enable_rds) {
 
 			g_settings.fmradio_enable_rds = bvalue;
-			log_notice(__func__, ": setting fmradio_enable_rds changed to ", (bvalue) ? "true" : "false");
+			log_notice(__func__, ": setting fmradio_enable_rds changed to ", bvalue);
 		}
 	}
 
