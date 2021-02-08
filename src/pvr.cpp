@@ -80,7 +80,6 @@ template<typename _result> static _result handle_stdexception(char const* functi
 //
 template<typename... _args> static void log_debug(_args&&... args);
 template<typename... _args> static void log_error(_args&&... args);
-template<typename... _args> static void log_info(_args&&... args);
 template<typename... _args>	static void log_message(ADDON::addon_log_t level, _args&&... args);
 template<typename... _args> static void log_notice(_args&&... args);
 
@@ -407,15 +406,6 @@ static void log_error(_args&&... args)
 	log_message(ADDON::addon_log_t::LOG_ERROR, std::forward<_args>(args)...);
 }
 
-// log_info (local)
-//
-// Variadic method of writing a LOG_INFO entry into the Kodi application log
-template<typename... _args>
-static void log_info(_args&&... args)
-{
-	log_message(ADDON::addon_log_t::LOG_INFO, std::forward<_args>(args)...);
-}
-
 // log_message (local)
 //
 // Variadic method of writing an entry into the Kodi application log
@@ -683,6 +673,20 @@ ADDON_STATUS ADDON_Create(void* handle, void* props)
 			if(g_addon->GetSetting("fmradio_downsample_quality", &nvalue)) g_settings.fmradio_downsample_quality = static_cast<enum downsample_quality>(nvalue);
 			if(g_addon->GetSetting("fmradio_output_samplerate", &nvalue)) g_settings.fmradio_output_samplerate = nvalue;
 			if(g_addon->GetSetting("fmradio_output_gain", &fvalue)) g_settings.fmradio_output_gain = fvalue;
+
+			// Log the setting values; these are for diagnostic purposes just use the raw values
+			log_notice(__func__, ": g_settings.device_connection                 = ", static_cast<int>(g_settings.device_connection));
+			log_notice(__func__, ": g_settings.device_connection_tcp_host        = ", g_settings.device_connection_tcp_host);
+			log_notice(__func__, ": g_settings.device_connection_tcp_port        = ", g_settings.device_connection_tcp_port);
+			log_notice(__func__, ": g_settings.device_connection_usb_index       = ", g_settings.device_connection_usb_index);
+			log_notice(__func__, ": g_settings.device_frequency_correction       = ", g_settings.device_frequency_correction);
+			log_notice(__func__, ": g_settings.device_sample_rate                = ", g_settings.device_sample_rate);
+			log_notice(__func__, ": g_settings.fmradio_downsample_quality        = ", static_cast<int>(g_settings.fmradio_downsample_quality));
+			log_notice(__func__, ": g_settings.fmradio_enable_rds                = ", g_settings.fmradio_enable_rds);
+			log_notice(__func__, ": g_settings.fmradio_output_gain               = ", g_settings.fmradio_output_gain);
+			log_notice(__func__, ": g_settings.fmradio_output_samplerate         = ", g_settings.fmradio_output_samplerate);
+			log_notice(__func__, ": g_settings.fmradio_rds_standard              = ", static_cast<int>(g_settings.fmradio_rds_standard));
+			log_notice(__func__, ": g_settings.interface_prepend_channel_numbers = ", g_settings.interface_prepend_channel_numbers);
 
 			// Create the global gui callbacks instance
 			g_gui.reset(new CHelper_libKODI_guilib());
