@@ -47,6 +47,7 @@
 #include "sqlite_exception.h"
 #include "usbdevice.h"
 #include "tcpdevice.h"
+#include "wxstream.h"
 
 #pragma warning(push, 4)
 
@@ -176,10 +177,20 @@ struct addon_settings {
 	// Specifies the output sample rate for the FM DSP
 	int fmradio_output_samplerate;
 
-	// fm_radio_output_gain
+	// fmradio_output_gain
 	//
 	// Specified the output gain for the FM DSP
 	float fmradio_output_gain;
+
+	// wxradio_output_samplerate
+	//
+	// Specifies the output sample rate for the WX DSP
+	int wxradio_output_samplerate;
+
+	// wxradio_output_gain
+	//
+	// Specified the output gain for the WX DSP
+	float wxradio_output_gain;
 };
 
 //---------------------------------------------------------------------------
@@ -261,6 +272,8 @@ static addon_settings g_settings = {
 	downsample_quality::standard,		// fmradio_downsample_quality
 	(48 KHz),							// fmradio_output_samplerate
 	-3.0f,								// fmradio_output_gain
+	(48 KHz),							// wxradio_output_samplerate
+	-3.0f,								// wxradio_output_gain
 };
 
 // g_settings_lock
@@ -674,6 +687,10 @@ ADDON_STATUS ADDON_Create(void* handle, void* props)
 			if(g_addon->GetSetting("fmradio_output_samplerate", &nvalue)) g_settings.fmradio_output_samplerate = nvalue;
 			if(g_addon->GetSetting("fmradio_output_gain", &fvalue)) g_settings.fmradio_output_gain = fvalue;
 
+			// Load the Weather Radio settings
+			if(g_addon->GetSetting("wxradio_output_samplerate", &nvalue)) g_settings.wxradio_output_samplerate = nvalue;
+			if(g_addon->GetSetting("wxradio_output_gain", &fvalue)) g_settings.wxradio_output_gain = fvalue;
+
 			// Log the setting values; these are for diagnostic purposes just use the raw values
 			log_notice(__func__, ": g_settings.device_connection                 = ", static_cast<int>(g_settings.device_connection));
 			log_notice(__func__, ": g_settings.device_connection_tcp_host        = ", g_settings.device_connection_tcp_host);
@@ -687,6 +704,8 @@ ADDON_STATUS ADDON_Create(void* handle, void* props)
 			log_notice(__func__, ": g_settings.fmradio_output_samplerate         = ", g_settings.fmradio_output_samplerate);
 			log_notice(__func__, ": g_settings.fmradio_rds_standard              = ", static_cast<int>(g_settings.fmradio_rds_standard));
 			log_notice(__func__, ": g_settings.interface_prepend_channel_numbers = ", g_settings.interface_prepend_channel_numbers);
+			log_notice(__func__, ": g_settings.wxradio_output_gain               = ", g_settings.wxradio_output_gain);
+			log_notice(__func__, ": g_settings.wxradio_output_samplerate         = ", g_settings.wxradio_output_samplerate);
 
 			// Create the global gui callbacks instance
 			g_gui.reset(new CHelper_libKODI_guilib());
@@ -973,6 +992,30 @@ ADDON_STATUS ADDON_SetSetting(char const* name, void const* value)
 		}
 	}
 
+	// wxradio_output_samplerate
+	//
+	else if(strcmp(name, "wxradio_output_samplerate") == 0) {
+
+		int nvalue = *reinterpret_cast<int const*>(value);
+		if(nvalue != g_settings.wxradio_output_samplerate) {
+
+			g_settings.wxradio_output_samplerate = nvalue;
+			log_notice(__func__, ": setting wxradio_output_samplerate changed to ", g_settings.wxradio_output_samplerate, "Hz");
+		}
+	}
+
+	// wxradio_output_gain
+	//
+	else if(strcmp(name, "wxradio_output_gain") == 0) {
+
+		float fvalue = *reinterpret_cast<float const*>(value);
+		if(fvalue != g_settings.wxradio_output_gain) {
+
+			g_settings.wxradio_output_gain = fvalue;
+			log_notice(__func__, ": setting wxradio_output_gain changed to ", g_settings.wxradio_output_gain, "dB");
+		}
+	}
+
 	return ADDON_STATUS_OK;
 }
 
@@ -1178,7 +1221,7 @@ PVR_ERROR GetEPGTagStreamProperties(EPG_TAG const* /*tag*/, PVR_NAMED_VALUE* /*p
 
 int GetChannelGroupsAmount(void)
 {
-	return 1;				// "FM Radio"
+	return 2;				// "FM Radio", "Weather Radio"
 }
 
 //---------------------------------------------------------------------------
@@ -1203,7 +1246,11 @@ PVR_ERROR GetChannelGroups(ADDON_HANDLE handle, bool radio)
 	// FM Radio
 	snprintf(group.strGroupName, std::extent<decltype(group.strGroupName)>::value, "FM Radio");
 	group.bIsRadio = true;
+	g_pvr->TransferChannelGroup(handle, &group);
 
+	// Weather Radio
+	snprintf(group.strGroupName, std::extent<decltype(group.strGroupName)>::value, "Weather Radio");
+	group.bIsRadio = true;
 	g_pvr->TransferChannelGroup(handle, &group);
 
 	return PVR_ERROR::PVR_ERROR_NO_ERROR;
@@ -1228,9 +1275,10 @@ PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, PVR_CHANNEL_GROUP const& g
 	// Only interested in radio channel groups
 	if(!group.bIsRadio) return PVR_ERROR::PVR_ERROR_NO_ERROR;
 
-	// There is currently only one channel group enumerator - "FM Radio"
+	// Select the proper enumerator for the channel group
 	std::function<void(sqlite3*, enumerate_channels_callback)> enumerator = nullptr;
 	if(strcmp(group.strGroupName, "FM Radio") == 0) enumerator = enumerate_fmradio_channels;
+	if(strcmp(group.strGroupName, "Weather Radio") == 0) enumerator = enumerate_wxradio_channels;
 
 	// If no enumerator was selected, there isn't any work to do here
 	if(enumerator == nullptr) return PVR_ERROR::PVR_ERROR_NO_ERROR;
@@ -1695,37 +1743,64 @@ bool OpenLiveStream(PVR_CHANNEL const& channel)
 		tunerprops.samplerate = settings.device_sample_rate;
 		tunerprops.freqcorrection = settings.device_frequency_correction;
 
-		// Set up the FM digital signal processor properties
-		struct fmprops fmprops = {};
-		fmprops.decoderds = settings.fmradio_enable_rds;
-		fmprops.isrbds = (get_regional_rds_standard(settings.fmradio_rds_standard) == rds_standard::rbds);
-		fmprops.downsamplequality = static_cast<int>(settings.fmradio_downsample_quality);
-		fmprops.outputrate = settings.fmradio_output_samplerate;
-		fmprops.outputgain = settings.fmradio_output_gain;
-
 		// Retrieve the tuning properties for the channel from the database
 		struct channelprops channelprops = {};
 		if(!get_channel_properties(connectionpool::handle(g_connpool), channel.iUniqueId, channelprops))
 			throw string_exception("channel ", channel.iUniqueId, " (", channel.strChannelName, ") was not found in the database");
 
-		// TODO: subchannel numbers are reserved for HD Radio
-		assert(channelprops.subchannel == 0);
+		// FM Radio
+		//
+		if((channelprops.frequency >= 87500000) && (channelprops.frequency <= 107900000) && (channelprops.subchannel == 0)) {
 
-		// Log information about the stream for diagnostic purposes
-		log_notice(__func__, ": Creating fmstream for channel \"", channelprops.name, "\"");
-		log_notice(__func__, ": tunerprops.samplerate = ", tunerprops.samplerate, " Hz");
-		log_notice(__func__, ": tunerprops.freqcorrection = ", tunerprops.freqcorrection, " PPM");
-		log_notice(__func__, ": fmprops.decoderds = ", (fmprops.decoderds) ? "true" : "false");
-		log_notice(__func__, ": fmprops.isrbds = ", (fmprops.isrbds) ? "true" : "false");
-		log_notice(__func__, ": fmprops.downsamplequality = ", downsample_quality_to_string(static_cast<enum downsample_quality>(fmprops.downsamplequality)));
-		log_notice(__func__, ": fmprops.outputgain = ", fmprops.outputgain, " dB");
-		log_notice(__func__, ": fmprops.outputrate = ", fmprops.outputrate, " Hz");
-		log_notice(__func__, ": channelprops.frequency = ", channelprops.frequency, " Hz");
-		log_notice(__func__, ": channelprops.autogain = ", (channelprops.autogain) ? "true" : "false");
-		log_notice(__func__, ": channelprops.manualgain = ", channelprops.manualgain / 10, " dB");
+			// Set up the FM digital signal processor properties
+			struct fmprops fmprops = {};
+			fmprops.decoderds = settings.fmradio_enable_rds;
+			fmprops.isrbds = (get_regional_rds_standard(settings.fmradio_rds_standard) == rds_standard::rbds);
+			fmprops.downsamplequality = static_cast<int>(settings.fmradio_downsample_quality);
+			fmprops.outputrate = settings.fmradio_output_samplerate;
+			fmprops.outputgain = settings.fmradio_output_gain;
 
-		// Create the FM radio stream, accessing the cached RTL-SDR device when possible
-		g_pvrstream = fmstream::create(create_device(settings), tunerprops, channelprops, fmprops);
+			// Log information about the stream for diagnostic purposes
+			log_notice(__func__, ": Creating fmstream for channel \"", channelprops.name, "\"");
+			log_notice(__func__, ": tunerprops.samplerate = ", tunerprops.samplerate, " Hz");
+			log_notice(__func__, ": tunerprops.freqcorrection = ", tunerprops.freqcorrection, " PPM");
+			log_notice(__func__, ": fmprops.decoderds = ", (fmprops.decoderds) ? "true" : "false");
+			log_notice(__func__, ": fmprops.isrbds = ", (fmprops.isrbds) ? "true" : "false");
+			log_notice(__func__, ": fmprops.downsamplequality = ", downsample_quality_to_string(static_cast<enum downsample_quality>(fmprops.downsamplequality)));
+			log_notice(__func__, ": fmprops.outputgain = ", fmprops.outputgain, " dB");
+			log_notice(__func__, ": fmprops.outputrate = ", fmprops.outputrate, " Hz");
+			log_notice(__func__, ": channelprops.frequency = ", channelprops.frequency, " Hz");
+			log_notice(__func__, ": channelprops.autogain = ", (channelprops.autogain) ? "true" : "false");
+			log_notice(__func__, ": channelprops.manualgain = ", channelprops.manualgain / 10, " dB");
+
+			// Create the FM Radio stream
+			g_pvrstream = fmstream::create(create_device(settings), tunerprops, channelprops, fmprops);
+		}
+
+		// Weather Radio
+		//
+		else if((channelprops.frequency >= 162400000) && (channelprops.frequency <= 162550000) && (channelprops.subchannel == 0)) {
+
+			// Set up the WX digital signal processor properties
+			struct wxprops wxprops = {};
+			wxprops.outputrate = settings.wxradio_output_samplerate;
+			wxprops.outputgain = settings.wxradio_output_gain;
+
+			// Log information about the stream for diagnostic purposes
+			log_notice(__func__, ": Creating wxstream for channel \"", channelprops.name, "\"");
+			log_notice(__func__, ": tunerprops.samplerate = ", tunerprops.samplerate, " Hz");
+			log_notice(__func__, ": tunerprops.freqcorrection = ", tunerprops.freqcorrection, " PPM");
+			log_notice(__func__, ": wxprops.outputgain = ", wxprops.outputgain, " dB");
+			log_notice(__func__, ": wxprops.outputrate = ", wxprops.outputrate, " Hz");
+			log_notice(__func__, ": channelprops.frequency = ", channelprops.frequency, " Hz");
+			log_notice(__func__, ": channelprops.autogain = ", (channelprops.autogain) ? "true" : "false");
+			log_notice(__func__, ": channelprops.manualgain = ", channelprops.manualgain / 10, " dB");
+
+			// Create the Weather Radio stream
+			g_pvrstream = wxstream::create(create_device(settings), tunerprops, channelprops, wxprops);
+		}
+
+		else throw string_exception("channel ", channel.iUniqueId, " (", channel.strChannelName, ") has an unknown modulation type");
 	}
 
 	// Queue a notification for the user when a live stream cannot be opened, don't just silently log it
