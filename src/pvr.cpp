@@ -267,7 +267,7 @@ static addon_settings g_settings = {
 	(1600 KHz),							// device_sample_rate
 	0,									// device_frequency_correction
 	false,								// interface_prepend_channel_numbers
-	true,								// fmradio_enable_rds
+	false,								// fmradio_enable_rds
 	rds_standard::automatic,			// fmradio_rds_standard
 	downsample_quality::standard,		// fmradio_downsample_quality
 	(48 KHz),							// fmradio_output_samplerate
