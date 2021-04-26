@@ -466,8 +466,7 @@ static void menuhook_clearchannels(void)
 		g_gui->Dialog_OK_ShowAndGetInput(g_addon->GetLocalizedString(30402), "Channel data successfully cleared");
 
 		// Trigger both a channel and a channel group update in Kodi
-		g_pvr->TriggerChannelUpdate();
-		g_pvr->TriggerChannelGroupsUpdate();
+		g_pvr->TriggerChannelGroupsUpdate();				// Trigger a channel group update in Kodi
 	}
 
 	catch(std::exception& ex) {
@@ -581,9 +580,7 @@ static void menuhook_importchannels(void)
 			// Inform the user that the operation was successful
 			g_gui->Dialog_OK_ShowAndGetInput(g_addon->GetLocalizedString(30400), "Channels successfully imported from:", "", path);
 
-			// Trigger both a channel and a channel group update in Kodi
-			g_pvr->TriggerChannelUpdate();
-			g_pvr->TriggerChannelGroupsUpdate();
+			g_pvr->TriggerChannelGroupsUpdate();				// Trigger a channel group update in Kodi
 		}
 
 		catch(std::exception& ex) {
@@ -926,9 +923,8 @@ ADDON_STATUS ADDON_SetSetting(char const* name, void const* value)
 			g_settings.interface_prepend_channel_numbers = bvalue;
 			log_notice(__func__, ": setting interface_prepend_channel_numbers changed to ", bvalue);
 
-			// Trigger channel and channel group updates to refresh the channel information
+			// Trigger a channel update to refresh the channel information
 			g_pvr->TriggerChannelUpdate();
-			g_pvr->TriggerChannelGroupsUpdate();
 		}
 	}
 
