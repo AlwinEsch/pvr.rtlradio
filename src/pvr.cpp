@@ -1417,7 +1417,14 @@ PVR_ERROR GetChannels(ADDON_HANDLE handle, bool radio)
 
 PVR_ERROR DeleteChannel(PVR_CHANNEL const& channel)
 {
-	try { delete_channel(connectionpool::handle(g_connpool), channel.iUniqueId); }
+	try {
+
+		// Remove the channel from the database
+		delete_channel(connectionpool::handle(g_connpool), channel.iUniqueId);
+
+		g_pvr->TriggerChannelGroupsUpdate();			// Update the channel groups
+	}
+
 	catch(std::exception& ex) { return handle_stdexception(__func__, ex, PVR_ERROR::PVR_ERROR_FAILED); }
 	catch(...) { return handle_generalexception(__func__, PVR_ERROR::PVR_ERROR_FAILED); }
 
