@@ -1,0 +1,568 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<window>
+  <defaultcontrol always="true">1000</defaultcontrol>
+  <include>Animation_DialogPopupOpenClose</include>
+  <depth>DepthDialog+</depth>
+  <views>216</views>
+  <controls>
+    <control type="group">
+      <centertop>50%</centertop>
+      <height>830</height>
+      <centerleft>50%</centerleft>
+      <width>1480</width>
+      <include content="DialogBackgroundCommons">
+        <param name="width" value="1480" />
+        <param name="height" value="780" />
+        <param name="header_label" value="$ADDON[pvr.rtlradio 30600]" />
+        <param name="header_id" value="950" />
+      </include>
+
+      <control type="group" id="1990">
+        <control type="group" id="2000">
+          <animation effect="fade" time="400">VisibleChange</animation>
+          <control type="textbox" id="5">
+            <left>1%</left>
+            <top>85</top>
+            <width>1180</width>
+            <height>697</height>
+            <shadowcolor>black</shadowcolor>
+            <font>font14</font>
+            <monofont>Mono26</monofont>
+            <label>$ADDON[pvr.rtlradio 30605]</label>
+          </control>
+        </control>
+        <control type="group" id="2001">
+          <animation effect="fade" time="400">VisibleChange</animation>
+          <left>1%</left>
+          <top>85</top>
+          <width>1180</width>
+          <visible>false</visible>
+          <control type="grouplist">
+            <onleft>1000</onleft>
+            <onright>1000</onright>
+            <itemgap>0</itemgap>
+            <control type="label">
+              <description>Default Label</description>
+              <textoffsetx>45</textoffsetx>
+              <top>0</top>
+              <height>50</height>
+              <align>center</align>
+              <aligny>center</aligny>
+              <font>font25_title</font>
+              <textcolor>grey</textcolor>
+              <shadowcolor>black</shadowcolor>
+              <label>$ADDON[pvr.rtlradio 30112]</label>
+            </control>
+            <control type="image">
+              <description>separator image</description>
+              <height>3</height>
+              <texture colordiffuse="AAAAAAAA" border="3">dialogs/separator-grey.png</texture>
+            </control>
+            <control type="spincontrolex" id="200">
+              <description>RTL-SDR Device connection</description>
+              <include>DefaultSettingButton</include>
+              <label>$ADDON[pvr.rtlradio 30100]</label>
+              <!--<onleft>1000</onleft>
+              <onright>1000</onright>-->
+            </control>
+            <control type="spincontrolex" id="201">
+              <description>Device connection USB index</description>
+              <include>DefaultSettingButton</include>
+              <label>$ADDON[pvr.rtlradio 30101]</label>
+              <!--<onleft>1000</onleft>
+              <onright>1000</onright>-->
+            </control>
+            <control type="edit" id="202">
+              <description>Device connection TCP host</description>
+              <include>DefaultSettingButton</include>
+              <label>$ADDON[pvr.rtlradio 30102]</label>
+              <!--<onleft>1000</onleft>
+              <onright>1000</onright>-->
+            </control>
+            <control type="edit" id="203">
+              <description>Device connection TCP port</description>
+              <include>DefaultSettingButton</include>
+              <label>$ADDON[pvr.rtlradio 30103]</label>
+              <!--<onleft>1000</onleft>
+              <onright>1000</onright>-->
+            </control>
+            <control type="image" id="204">
+              <description>separator image</description>
+              <height>3</height>
+              <texture colordiffuse="AAAAAAAA" border="3">dialogs/separator-grey.png</texture>
+            </control>
+            <control type="spincontrolex" id="205">
+              <description>Region code</description>
+              <include>DefaultSettingButton</include>
+              <label>$ADDON[pvr.rtlradio 30107]</label>
+              <!--<onleft>1000</onleft>
+              <onright>1000</onright>-->
+            </control>
+            <control type="radiobutton" id="206">
+              <description>Enable MW Radio</description>
+              <include>DefaultSettingButton</include>
+              <label>$ADDON[pvr.rtlradio 30120]</label>
+              <!--<onleft>1000</onleft>
+              <onright>1000</onright>-->
+            </control>
+            <control type="radiobutton" id="207">
+              <description>Enable MW Radio</description>
+              <include>DefaultSettingButton</include>
+              <label>$ADDON[pvr.rtlradio 30121]</label>
+              <!--<onleft>1000</onleft>
+              <onright>1000</onright>-->
+            </control>
+            <control type="radiobutton" id="208">
+              <description>Enable DAB/DAB+</description>
+              <include>DefaultSettingButton</include>
+              <label>$ADDON[pvr.rtlradio 30115]</label>
+              <!--<onleft>1000</onleft>
+              <onright>1000</onright>-->
+            </control>
+            <control type="radiobutton" id="209">
+              <description>Enable HD</description>
+              <include>DefaultSettingButton</include>
+              <label>$ADDON[pvr.rtlradio 30114]</label>
+              <!--<onleft>1000</onleft>
+              <onright>1000</onright>-->
+            </control>
+            <control type="radiobutton" id="210">
+              <description>Enable WX</description>
+              <include>DefaultSettingButton</include>
+              <label>$ADDON[pvr.rtlradio 30116]</label>
+              <!--<onleft>1000</onleft>
+              <onright>1000</onright>-->
+            </control>
+          </control>
+        </control>
+        <control type="group" id="2010">
+          <animation effect="fade" time="400">VisibleChange</animation>
+          <left>10</left>
+          <top>85</top>
+          <width>1180</width>
+          <visible>false</visible>
+          <control type="group">
+            <top>100</top>
+            <control type="group">
+              <control type="label">
+                <description>Channels found label</description>
+                <left>10</left>
+                <top>0</top>
+                <width>500</width>
+                <height>50</height>
+                <align>center</align>
+                <aligny>center</aligny>
+                <font>font25_title</font>
+                <textcolor>grey</textcolor>
+                <shadowcolor>black</shadowcolor>
+                <label>$ADDON[pvr.rtlradio 30123]</label>
+              </control>
+              <control type="group">
+                <left>10</left>
+                <top>50</top>
+                <width>520</width>
+                <control type="image">
+                  <left>0</left>
+                  <top>0</top>
+                  <width>520</width>
+                  <height>495</height>
+                  <aspectratio>scale</aspectratio>
+                  <texture colordiffuse="AAFFFFFF">colors/black.png</texture>
+                </control>
+                <control type="list" id="216">
+                  <left>10</left>
+                  <top>5</top>
+                  <width>488</width>
+                  <height>485</height>
+                  <onleft>1000</onleft>
+                  <onright>60</onright>
+                  <pagecontrol>60</pagecontrol>
+                  <scrolltime>200</scrolltime>
+                  <itemlayout height="60" width="488">
+                    <control type="image">
+                      <left>0</left>
+                      <top>0</top>
+                      <width>6000</width>
+                      <height>60</height>
+                      <texture border="5">lists/separator.png</texture>
+                    </control>
+                    <control type="label">
+                      <left>2</left>
+                      <top>0</top>
+                      <width>6000</width>
+                      <height>30</height>
+                      <align>left</align>
+                      <font>font14</font>
+                      <label>$INFO[ListItem.Label]</label>
+                    </control>
+                    <control type="label">
+                      <right>60</right>
+                      <bottom>0</bottom>
+                      <width>6000</width>
+                      <height>30</height>
+                      <align>right</align>
+                      <font>font10</font>
+                      <label>$INFO[ListItem.Label2]</label>
+                    </control>
+                    <control type="image">
+                      <right>2</right>
+                      <top>6</top>
+                      <width>48</width>
+                      <height>48</height>
+                      <aspectratio>stretch</aspectratio>
+                      <texture>$INFO[ListItem.Art(icon)]</texture>
+                    </control>
+                  </itemlayout>
+                  <focusedlayout height="60" width="488">
+                    <control type="image">
+                      <left>0</left>
+                      <top>0</top>
+                      <width>600</width>
+                      <height>60</height>
+                      <texture border="5">lists/separator.png</texture>
+                    </control>
+                    <control type="image">
+                      <left>0</left>
+                      <top>0</top>
+                      <width>600</width>
+                      <height>60</height>
+                      <texture>lists/focus.png</texture>
+                      <animation effect="fade" start="100" end="30" time="0" condition="!Control.HasFocus(216)">conditional</animation>
+                    </control>
+                    <control type="label">
+                      <left>2</left>
+                      <top>0</top>
+                      <width>6000</width>
+                      <height>30</height>
+                      <align>left</align>
+                      <font>font14</font>
+                      <label>$INFO[ListItem.Label,[COLOR button_focus],[/COLOR]]</label>
+                    </control>
+                    <control type="label">
+                      <right>60</right>
+                      <bottom>0</bottom>
+                      <width>6000</width>
+                      <height>30</height>
+                      <align>right</align>
+                      <font>font10</font>
+                      <label>$INFO[ListItem.Label2,[COLOR button_focus],[/COLOR]]</label>
+                    </control>
+                    <control type="image">
+                      <right>2</right>
+                      <top>6</top>
+                      <width>48</width>
+                      <height>48</height>
+                      <aspectratio>stretch</aspectratio>
+                      <texture>$INFO[ListItem.Art(icon)]</texture>
+                    </control>
+                  </focusedlayout>
+                </control>
+                <control type="scrollbar" id="60">
+                  <left>508</left>
+                  <top>0</top>
+                  <width>12</width>
+                  <height>495</height>
+                  <onleft>216</onleft>
+                  <onright condition="Control.IsVisible(2002)">1000</onright>
+                  <onright condition="Control.IsVisible(2003)">2002</onright>
+                  <orientation>vertical</orientation>
+                </control>
+                <control type="edit" id="217">
+                  <description>Channels found quantity</description>
+                  <left>0</left>
+                  <top>440</top>
+                  <width>520</width>
+                  <align>center</align>
+                  <texturefocus></texturefocus>
+                  <texturenofocus></texturenofocus>
+                  <alttexturefocus></alttexturefocus>
+                  <alttexturenofocus></alttexturenofocus>
+                  <font>font23_narrow</font>
+                  <disabledcolor>white</disabledcolor>
+                  <enable>false</enable>
+                </control>
+              </control>
+            </control>
+          </control>
+        </control>
+        <control type="group" id="2002">
+          <animation effect="fade" time="400">VisibleChange</animation>
+          <left>10</left>
+          <top>85</top>
+          <width>1180</width>
+          <visible>false</visible>
+          <onleft>2010</onleft>
+          <onright>2003</onright>
+          <control type="label" id="198">
+            <description>Header Label</description>
+            <textoffsetx>45</textoffsetx>
+            <top>0</top>
+            <height>50</height>
+            <align>center</align>
+            <aligny>center</aligny>
+            <font>font25_title</font>
+            <textcolor>grey</textcolor>
+            <shadowcolor>black</shadowcolor>
+            <label>$ADDON[pvr.rtlradio 30122]</label>
+          </control>
+          <control type="image">
+            <description>separator image</description>
+            <top>50</top>
+            <height>3</height>
+            <texture colordiffuse="AAAAAAAA" border="3">dialogs/separator-grey.png</texture>
+          </control>
+          <control type="progress" id="211">
+            <top>70</top>
+            <left>10</left>
+            <right>10</right>
+            <height>15</height>
+          </control>
+          <control type="label" id="218">
+            <description>Process percentage</description>
+            <textoffsetx>45</textoffsetx>
+            <left>10</left>
+            <top>85</top>
+            <height>50</height>
+            <align>center</align>
+            <aligny>center</aligny>
+            <font>font25_title</font>
+            <textcolor>grey</textcolor>
+            <shadowcolor>black</shadowcolor>
+          </control>
+          <control type="group">
+            <top>100</top>
+            <control type="label" id="199">
+              <description>Signal label</description>
+              <right>10</right>
+              <top>0</top>
+              <width>600</width>
+              <height>50</height>
+              <label></label>
+              <align>center</align>
+              <aligny>center</aligny>
+              <font>font25_title</font>
+              <textcolor>grey</textcolor>
+              <shadowcolor>black</shadowcolor>
+              <label>$ADDON[pvr.rtlradio 30127]</label>
+            </control>
+            <control type="group">
+              <left>550</left>
+              <right>0</right>
+              <top>50</top>
+              <control type="renderaddon" id="212">
+                <right>0</right>
+                <top>0</top>
+                <width>620</width>
+                <height>495</height>
+              </control>
+              <control type="group">
+                <top>440</top>
+                <control type="edit" id="213">
+                  <description>Signal Meter power</description>
+                  <left>0</left>
+                  <top>0</top>
+                  <width>200</width>
+                  <texturefocus></texturefocus>
+                  <texturenofocus></texturenofocus>
+                  <alttexturefocus></alttexturefocus>
+                  <alttexturenofocus></alttexturenofocus>
+                  <font>font23_narrow</font>
+                  <disabledcolor>white</disabledcolor>
+                  <enable>false</enable>
+                  <label>$ADDON[pvr.rtlradio 30331]</label>
+                </control>
+                <control type="edit" id="214">
+                  <description>Signal Meter noise</description>
+                  <left>220</left>
+                  <right>180</right>
+                  <top>0</top>
+                  <texturefocus></texturefocus>
+                  <texturenofocus></texturenofocus>
+                  <alttexturefocus></alttexturefocus>
+                  <alttexturenofocus></alttexturenofocus>
+                  <font>font23_narrow</font>
+                  <disabledcolor>white</disabledcolor>
+                  <enable>false</enable>
+                  <label>$ADDON[pvr.rtlradio 30332]</label>
+                </control>
+                <control type="edit" id="215">
+                  <description>Signal Meter SNR</description>
+                  <right>0</right>
+                  <width>160</width>
+                  <top>0</top>
+                  <texturefocus></texturefocus>
+                  <texturenofocus></texturenofocus>
+                  <alttexturefocus></alttexturefocus>
+                  <alttexturenofocus></alttexturenofocus>
+                  <font>font23_narrow</font>
+                  <disabledcolor>white</disabledcolor>
+                  <enable>false</enable>
+                  <label>$ADDON[pvr.rtlradio 30333]</label>
+                </control>
+              </control>
+            </control>
+          </control>
+        </control>
+        <control type="group" id="2003">
+          <animation effect="fade" time="400">VisibleChange</animation>
+          <left>10</left>
+          <top>85</top>
+          <width>1180</width>
+          <visible>false</visible>
+          <control type="label" id="198">
+            <description>Header Label</description>
+            <textoffsetx>45</textoffsetx>
+            <top>0</top>
+            <height>50</height>
+            <align>center</align>
+            <aligny>center</aligny>
+            <font>font25_title</font>
+            <textcolor>grey</textcolor>
+            <shadowcolor>black</shadowcolor>
+            <label>$ADDON[pvr.rtlradio 30131]</label>
+          </control>
+          <control type="image">
+            <description>separator image</description>
+            <top>50</top>
+            <height>3</height>
+            <texture colordiffuse="AAAAAAAA" border="3">dialogs/separator-grey.png</texture>
+          </control>
+          <control type="group">
+            <top>100</top>
+            <right>10</right>
+            <width>640</width>
+            <control type="label">
+              <description>Settings label</description>
+              <top>0</top>
+              <height>50</height>
+              <label></label>
+              <align>center</align>
+              <aligny>center</aligny>
+              <font>font25_title</font>
+              <textcolor>grey</textcolor>
+              <shadowcolor>black</shadowcolor>
+              <label>$ADDON[pvr.rtlradio 30133]</label>
+            </control>
+            <control type="group">
+              <top>50</top>
+              <control type="grouplist">
+                <onleft>60</onleft>
+                <onright>1000</onright>
+                <control type="radiobutton" id="32">
+                  <description>Is Visible</description>
+                  <include>DefaultSettingButton</include>
+                  <label>$ADDON[pvr.rtlradio 30134]</label>
+                  <!--<selected>ListItem.Property(visible)</selected>-->
+                </control>
+                <control type="edit" id="33">
+                  <description>Channels name</description>
+                  <include>DefaultSettingButton</include>
+                  <label>$ADDON[pvr.rtlradio 30135]</label>
+                  <!--<hinttext>$INFO[Container(216).ListItem.Label]</hinttext>-->
+                </control>
+                <control type="edit" id="34">
+                  <description>Channels picture</description>
+                  <include>DefaultSettingButton</include>
+                  <label>$ADDON[pvr.rtlradio 30136]</label>
+                  <!--<hinttext>$INFO[Container(216).ListItem.Art(icon)]</hinttext>-->
+                </control>
+              </control>
+            </control>
+          </control>
+          <control type="group">
+            <top>370</top>
+            <right>10</right>
+            <width>640</width>
+            <control type="label">
+              <description>Information label</description>
+              <top>0</top>
+              <height>50</height>
+              <label></label>
+              <align>center</align>
+              <aligny>center</aligny>
+              <font>font25_title</font>
+              <textcolor>grey</textcolor>
+              <shadowcolor>black</shadowcolor>
+              <label>$ADDON[pvr.rtlradio 30132]</label>
+            </control>
+            <control type="group">
+              <top>50</top>
+              <control type="grouplist">
+                <itemgap>-30</itemgap>
+                <control type="edit">
+                  <description>Provider</description>
+                  <include>DefaultSettingButton</include>
+                  <label>$ADDON[pvr.rtlradio 30137]</label>
+                  <hinttext>$INFO[ListItem.Property(provider)]</hinttext>
+                  <enable>false</enable>
+                </control>
+                <control type="edit">
+                  <description>Modulation</description>
+                  <include>DefaultSettingButton</include>
+                  <label>$ADDON[pvr.rtlradio 30138]</label>
+                  <hinttext>$INFO[ListItem.Property(modulation)]</hinttext>
+                  <enable>false</enable>
+                </control>
+                <control type="edit">
+                  <description>Programme Type</description>
+                  <include>DefaultSettingButton</include>
+                  <label>$ADDON[pvr.rtlradio 30340]</label>
+                  <hinttext>$INFO[ListItem.Property(programmtype)]</hinttext>
+                  <enable>false</enable>
+                </control>
+                <control type="edit">
+                  <description>Frequency / Block</description>
+                  <include>DefaultSettingButton</include>
+                  <label>$ADDON[pvr.rtlradio 30139]</label>
+                  <hinttext>$INFO[ListItem.Property(frequency)]</hinttext>
+                  <enable>false</enable>
+                </control>
+              </control>
+            </control>
+          </control>
+        </control>
+      </control>
+
+      <!-- Dialog Buttons -->
+      <control type="grouplist" id="1000">
+        <right>2</right>
+        <top>80</top>
+        <onleft condition="Control.IsVisible(2001)">2001</onleft>
+        <onleft condition="Control.IsVisible(2002)">60</onleft>
+        <onleft condition="Control.IsVisible(2003)">2003</onleft>
+        <onright condition="Control.IsVisible(2001)">2001</onright>
+        <onright condition="Control.IsVisible(2010)">216</onright>
+        <itemgap>dialogbuttons_itemgap</itemgap>
+        <width>300</width>
+        <!--Next-->
+        <include content="DefaultDialogButton">
+          <param name="width" value="300" />
+          <param name="id" value="100" />
+          <param name="visible">true</param>
+          <param name="label" value="$ADDON[pvr.rtlradio 30601]" />
+        </include>
+        <!--Finish-->
+        <include content="DefaultDialogButton">
+          <param name="width" value="300" />
+          <param name="id" value="101" />
+          <param name="visible">false</param>
+          <param name="label" value="$ADDON[pvr.rtlradio 30602]" />
+        </include>
+        <!--Back-->
+        <include content="DefaultDialogButton">
+          <param name="width" value="300" />
+          <param name="id" value="102" />
+          <param name="visible">false</param>
+          <param name="label" value="$ADDON[pvr.rtlradio 30603]" />
+        </include>
+        <!--Cancel-->
+        <include content="DefaultDialogButton">
+          <param name="width" value="300" />
+          <param name="id" value="103" />
+          <param name="visible">true</param>
+          <param name="label" value="$ADDON[pvr.rtlradio 30604]" />
+        </include>
+      </control>
+    </control>
+  </controls>
+</window>

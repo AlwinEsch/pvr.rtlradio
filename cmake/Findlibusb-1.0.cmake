@@ -8,7 +8,9 @@ find_path(LIBUSB_1_INCLUDE_DIRS libusb.h
                               PATH_SUFFIXES libusb-1.0)
 find_library(LIBUSB_1_LIBRARIES libusb-1.0 libusb-1.0.a
                               PATHS ${PC_LIBUSB_1_LIBDIR})
-list(APPEND LIBUSB_1_LIBRARIES ${PC_LIBUSB_1_LDFLAGS})
+if (NOT WIN32)
+  list(APPEND LIBUSB_1_LIBRARIES ${PC_LIBUSB_1_LDFLAGS})
+endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(libusb-1.0 REQUIRED_VARS LIBUSB_1_LIBRARIES LIBUSB_1_INCLUDE_DIRS)

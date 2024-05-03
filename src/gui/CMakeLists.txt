@@ -1,10 +1,17 @@
-set(SOURCES channeladd.cpp
-            channelsettings.cpp)
+set(SOURCE_NAME code_src_gui)
 
-set(HEADERS channeladd.h
-            channelsettings.h
-            renderingcontrol.h)
+set(SOURCES control_signalmeter.cpp
+            dialog_first_start.cpp)
 
-add_library(code_src_gui OBJECT ${SOURCES} ${HEADERS})
-target_include_directories(code_src_gui PRIVATE ${PROJECT_SOURCE_DIR}/src)
-target_link_libraries(code_src_gui ${DEPLIBS})
+set(HEADERS control_signalmeter.h
+            dialog_first_start.h
+            renderingcontrol_i.h)
+
+add_library(${SOURCE_NAME} OBJECT ${SOURCES} ${HEADERS})
+
+target_include_directories(${SOURCE_NAME} PRIVATE ${KODI_INCLUDE_DIRS}
+                                          PRIVATE ${LIBFMT_INCLUDE_DIRS}
+                                          PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries(${SOURCE_NAME} ${DEPLIBS})
+
+unset(SOURCE_NAME)

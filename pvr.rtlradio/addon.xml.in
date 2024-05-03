@@ -8,6 +8,10 @@
   <extension
     point="kodi.pvrclient"
     library_@PLATFORM@="@LIBRARY_FILENAME@"/>
+  <extension
+    point="kodi.inputstream"
+    name="pvr.rtlradio"
+    listitemprops="provider|channel"/>
   <extension point="xbmc.addon.metadata">
     <platform>@PLATFORM@</platform>
     <license>MIT License (https://opensource.org/licenses/MIT)</license>

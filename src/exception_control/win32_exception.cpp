@@ -74,7 +74,7 @@ win32_exception::win32_exception(win32_exception&& rhs) : m_what(std::move(rhs.m
 //-----------------------------------------------------------------------------
 // win32_exception char const* conversion operator
 
-win32_exception::operator char const*() const
+win32_exception::operator char const *() const
 {
   return m_what.c_str();
 }
@@ -126,7 +126,7 @@ std::string win32_exception::format_message(DWORD result)
         reinterpret_cast<va_list*>(&result));
   }
 
-  // If a formatted message was generated, assign it to the std::string and release it
+  // If a formatted message was generated, assign it to the std::string and Release it
   if (cchformatted > 0)
     message.assign(formatted, cchformatted);
   if (formatted)

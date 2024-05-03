@@ -22,8 +22,6 @@
 
 #include "sqlite_exception.h"
 
-#include "utils/value_size_defines.h"
-
 #pragma warning(push, 4)
 
 //-----------------------------------------------------------------------------
@@ -33,7 +31,8 @@
 //
 //	code		- SQLite error code
 
-sqlite_exception::sqlite_exception(int code)
+sqlite_exception::sqlite_exception(const nostd::source_location location, int code)
+  : m_location(location)
 {
   char* what = sqlite3_mprintf("%s (%d)", sqlite3_errstr(code), code);
   m_what.assign((what) ? what : "sqlite_exception(code)");
@@ -48,7 +47,10 @@ sqlite_exception::sqlite_exception(int code)
 //	code		- SQLite error code
 //	message		- Additional message to associate with the exception
 
-sqlite_exception::sqlite_exception(int code, char const* message)
+sqlite_exception::sqlite_exception(const nostd::source_location location,
+                                   int code,
+                                   char const* message)
+  : m_location(location)
 {
   char* what = sqlite3_mprintf("%s (%d)", (message) ? message : sqlite3_errstr(code), code);
   m_what.assign((what) ? what : "sqlite_exception(code, message)");
@@ -58,21 +60,23 @@ sqlite_exception::sqlite_exception(int code, char const* message)
 //-----------------------------------------------------------------------------
 // sqlite_exception Copy Constructor
 
-sqlite_exception::sqlite_exception(sqlite_exception const& rhs) : m_what(rhs.m_what)
+sqlite_exception::sqlite_exception(sqlite_exception const& rhs)
+  : m_what(rhs.m_what), m_location(rhs.m_location)
 {
 }
 
 //-----------------------------------------------------------------------------
 // sqlite_exception Move Constructor
 
-sqlite_exception::sqlite_exception(sqlite_exception&& rhs) : m_what(std::move(rhs.m_what))
+sqlite_exception::sqlite_exception(sqlite_exception&& rhs)
+  : m_what(rhs.m_what), m_location(rhs.m_location)
 {
 }
 
 //-----------------------------------------------------------------------------
 // sqlite_exception char const* conversion operator
 
-sqlite_exception::operator char const*() const
+sqlite_exception::operator char const *() const
 {
   return m_what.c_str();
 }

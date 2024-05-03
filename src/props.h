@@ -1,181 +1,540 @@
-//-----------------------------------------------------------------------------
-// Copyright (c) 2020-2022 Michael G. Brehm
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-//-----------------------------------------------------------------------------
+/*
+ *  Copyright (C) 2024 Team Kodi (https://kodi.tv)
+ *
+ *  SPDX-License-Identifier: MIT
+ *  See LICENSE.md for more information.
+ */
 
-#ifndef __PROPS_H_
-#define __PROPS_H_
 #pragma once
 
-#include <stdint.h>
-#include <string>
+#include <map>
+#include <memory>
+#include <string_view>
+#include <vector>
 
-#pragma warning(push, 4)
+#define KiB *(1 << 10)
+#define MiB *(1 << 20)
+#define GiB *(1 << 30)
 
-enum class modulation;
+#define KHz *(1000)
+#define MHz *(1000000)
 
-// channelprops
-//
-// Defines properties for a radio channel
-struct channelprops
+namespace RTLRADIO
 {
 
-  uint32_t frequency; // Center frequency
-  enum modulation modulation; // Modulation
-  std::string name; // Channel name
-  std::string logourl; // Channel logo URL
-  bool autogain; // Flag indicating if automatic gain should be used
-  int manualgain; // Manual gain value as 10*dB (i.e. 32.8dB = 328)
-  int freqcorrection; // Frequency correction for this channel
-};
-
-// dabprops
-//
-// Defines properties for the DAB digital signal processor
-struct dabprops
+enum class Modulation : uint8_t
 {
+  //! Medium wave (MW) for AM radio broadcasting
+  MW = 0,
 
-  float outputgain; // Output gain in Decibels
-  bool coarse_corrector; // Flage for coarse corrector (for receivers with >1kHz error)
-  int coarse_corrector_type; // Coarse corrector frequency sync method
+  //! Frequency modulation (FM)
+  FM = 1,
+
+  //! Digital Audio Broadcast radio (DAB/DAB+)
+  DAB = 2,
+
+  //! Hybrid Digital radio
+  HD = 3,
+
+  //! VHF Weather radio
+  WX = 4
 };
 
-// fmprops
-//
-// Defines properties for the FM Radio digital signal processor
-struct fmprops
+enum class TransportMode : uint8_t
 {
-
-  bool decoderds; // Flag if RDS should be decoded or not
-  bool isnorthamerica; // Flag if region is North America
-  uint32_t samplerate; // Input sample rate in Hertz
-  int downsamplequality; // Downsample quality setting
-  uint32_t outputrate; // Output sample rate in Hertz
-  float outputgain; // Output gain in Decibels
+  STREAM_MODE_AUDIO = 0,
+  STREAM_MODE_DATA = 1,
+  PACKET_MODE_DATA = 2,
+  UNDEFINED = 0xFF,
 };
 
-// hdprops
-//
-// Defines properties for the HD Radio digital signal processor
-struct hdprops
+enum class ProgrammType : uint8_t
 {
-
-  float outputgain; // Output gain in Decibels
+  NONE = 0,
+  NEWS = 1,
+  CURRENT_AFFAIRS = 2,
+  INFORMATION = 3,
+  SPORT = 4,
+  EDUCATION = 5,
+  DRAMA = 6,
+  ARTS = 7,
+  SCIENCE = 8,
+  TALK = 9,
+  POP_MUSIC = 10,
+  ROCK_MUSIC = 11,
+  EASY_LISTENING = 12,
+  LIGHT_CLASSICAL = 13,
+  CLASSICAL_MUSIC = 14,
+  MUSIC = 15,
+  WEATHER = 16,
+  FINANCE = 17,
+  CHILDREN = 18,
+  FACTUAL = 19,
+  RELIGION = 20,
+  PHONE_IN = 21,
+  TRAVEL = 22,
+  LEISURE = 23,
+  JAZZ_AND_BLUES = 24,
+  COUNTRY_MUSIC = 25,
+  NATIONAL_MUSIC = 26,
+  OLDIES_MUSIC = 27,
+  FOLK_MUSIC = 28,
+  DOCUMENTARY = 29,
+  UNDEFINED = 0xFF,
 };
 
-// modulation
-//
-// Defines the modulation of a channel
-enum class modulation
+enum class CountryCode
 {
-
-  fm = 0, // Wideband FM radio
-  hd = 1, // Hybrid Digital radio
-  dab = 2, // Digital Audio Broadcast radio
-  wx = 3, // VHF Weather radio
+  GERMANY,
+  ALGERIA,
+  ANDORRA,
+  ISRAEL,
+  ITALY,
+  BELGIUM,
+  RUSSIAN_FEDERATION,
+  PALESTINE,
+  ALBANIA,
+  AUSTRIA,
+  HUNGARY,
+  MALTA,
+  EGYPT,
+  GREECE,
+  CYPRUS,
+  SAN_MARINO,
+  SWITZERLAND,
+  JORDAN,
+  FINLAND,
+  LUXEMBOURG,
+  BULGARIA,
+  DENMARK,
+  FAROE,
+  GIBRALTAR,
+  IRAQ,
+  UNITED_KINGDOM,
+  LIBYA,
+  ROMANIA,
+  FRANCE,
+  MOROCCO,
+  CZECH_REPUBLIC,
+  POLAND,
+  VATICAN,
+  SLOVAKIA,
+  SYRIA,
+  TUNISIA,
+  LIECHTENSTEIN,
+  ICELAND,
+  MONACO,
+  LITHUANIA,
+  SERBIA,
+  CANARY_ISLANDS,
+  SPAIN,
+  NORWAY,
+  MONTENEGRO,
+  IRELAND,
+  TURKEY,
+  TAJIKISTAN,
+  NETHERLANDS,
+  LATVIA,
+  LEBANON,
+  AZERBAIJAN,
+  CROATIA,
+  KAZAKHSTAN,
+  SWEDEN,
+  BELARUS,
+  MOLDOVA,
+  ESTONIA,
+  MACEDONIA,
+  UKRAINE,
+  KOSOVO,
+  AZORES,
+  MADEIRA,
+  PORTUGAL,
+  SLOVENIA,
+  ARMENIA,
+  UZBEKISTAN,
+  GEORGIA,
+  TURKMENISTAN,
+  BOSNIA_HERZEGOVINA,
+  KYRGYZSTAN,
+  CAMEROON,
+  CENTRAL_AFRICAN_REPUBLIC,
+  DJIBOUTI,
+  MADAGASCAR,
+  MALI,
+  ANGOLA,
+  EQUATORIAL_GUINEA,
+  GABON,
+  REPUBLIC_OF_GUINEA,
+  SOUTH_AFRICA,
+  BURKINA_FASO,
+  CONGO,
+  TOGO,
+  BENIN,
+  MALAWI,
+  NAMIBIA,
+  LIBERIA,
+  GHANA,
+  MAURITANIA,
+  SAO_TOME_AND_PRINCIPE,
+  CAPE_VERDE,
+  SENEGAL,
+  GAMBIA,
+  BURUNDI,
+  ASCENSION_ISLAND,
+  BOTSWANA,
+  COMOROS,
+  TANZANIA,
+  ETHIOPIA,
+  NIGERIA,
+  SIERRA_LEONE,
+  ZIMBABWE,
+  MOZAMBIQUE,
+  UGANDA,
+  SWAZILAND,
+  KENYA,
+  SOMALIA,
+  NIGER,
+  CHAD,
+  GUINEA_BISSAU,
+  ZAIRE,
+  COTE_D_IVOIRE,
+  ZANZIBAR,
+  ZAMBIA,
+  WESTERN_SAHARA,
+  RWANDA,
+  LESOTHO,
+  SEYCHELLES,
+  MAURITIUS,
+  SUDAN,
+  UNITED_STATES_OF_AMERICA,
+  PUERTO_RICO,
+  VIRGIN_ISLANDS_USA,
+  CANADA,
+  GREENLAND,
+  ANGUILLA,
+  ANTIGUA_AND_BARBUDA,
+  ECUADOR,
+  FALKLAND_ISLANDS,
+  BARBADOS,
+  BELIZE,
+  CAYMAN_ISLANDS,
+  COSTA_RICA,
+  CUBA,
+  ARGENTINA,
+  BRAZIL,
+  BERMUDA,
+  NETHERLANDS_ANTILLES,
+  GUADELOUPE,
+  BAHAMAS,
+  BOLIVIA,
+  COLOMBIA,
+  JAMAICA,
+  MARTINIQUE,
+  PARAGUAY,
+  NICARAGUA,
+  PANAMA,
+  DOMINICA,
+  DOMINICAN_REPUBLIC,
+  CHILE,
+  GRENADA,
+  TURKS_AND_CAICOS_ISLANDS,
+  GUYANA,
+  GUATEMALA,
+  HONDURAS,
+  ARUBA,
+  MONTSERRAT,
+  TRINIDAD_AND_TOBAGO,
+  PERU,
+  SURINAM,
+  URUGUAY,
+  ST_KITTS,
+  ST_LUCIA,
+  EL_SALVADOR,
+  HAITI,
+  VENEZUELA,
+  MEXICO,
+  ST_VINCENT,
+  VIRGIN_ISLANDS_BRITISH,
+  ST_PIERRE_AND_MIQUELON,
+  LAOS,
+  AUSTRALIA,
+  VANUATU,
+  YEMEN,
+  SRI_LANKA,
+  BRUNEI_DARUSSALAM,
+  JAPAN,
+  FIJI,
+  IRAN,
+  KOREA_SOUTH,
+  CAMBODIA,
+  HONG_KONG,
+  SOLOMON_ISLANDS,
+  BAHRAIN,
+  WESTERN_SAMOA,
+  TAIWAN,
+  MALAYSIA,
+  SINGAPORE,
+  PAKISTAN,
+  CHINA,
+  MYANMAR_BURMA,
+  NAURU,
+  KIRIBATI,
+  BANGLADESH,
+  VIETNAM,
+  PHILIPPINES,
+  BHUTAN,
+  OMAN,
+  NEPAL,
+  UNITED_ARAB_EMIRATES,
+  KUWAIT,
+  QATAR,
+  KOREA_NORTH,
+  NEW_ZEALAND,
+  TONGA,
+  MICRONESIA,
+  MACAU,
+  INDIA,
+  SAUDI_ARABIA,
+  MONGOLIA,
+  MALDIVES,
+  PAPUA_NEW_GUINEA,
+  AFGHANISTAN,
+  INDONESIA,
+  THAILAND,
+  UNDEFINED = 0xFF,
 };
 
-// regioncode
-//
-// Defines the possible region codes
-enum class regioncode
+enum class LanguageCode
 {
-
-  notset = 0, // Unknown
-  world = 1, // FM
-  northamerica = 2, // FM/HD/WX
-  europe = 3, // FM/DAB
+  UNKNOWN,
+  ALBANIAN,
+  BRETON,
+  CATALAN,
+  CROATIAN,
+  WELSH,
+  CZECH,
+  DANISH,
+  GERMAN,
+  ENGLISH,
+  SPANISH,
+  ESPERANTO,
+  ESTONIAN,
+  BASQUE,
+  FAROESE,
+  FRENCH,
+  FRISIAN,
+  IRISH,
+  GAELIC,
+  GALICIAN,
+  ICELANDIC,
+  ITALIAN,
+  SAMI,
+  LATIN,
+  LATVIAN,
+  LUXEMBOURGIAN,
+  LITHUANIAN,
+  HUNGARIAN,
+  MALTESE,
+  DUTCH,
+  NORWEGIAN,
+  OCCITAN,
+  POLISH,
+  PORTUGUESE,
+  ROMANIAN,
+  ROMANSH,
+  SERBIAN,
+  SLOVAK,
+  SLOVENE,
+  FINNISH,
+  SWEDISH,
+  TURKISH,
+  FLEMISH,
+  ZULU,
+  VIETNAMESE,
+  UZBEK,
+  URDU,
+  UKRANIAN,
+  THAI,
+  TELUGU,
+  TATAR,
+  TAMIL,
+  TADZHIK,
+  SWAHILI,
+  SRANAN_TONGO,
+  SOMALI,
+  SINHALESE,
+  SHONA,
+  SERBO_CROAT,
+  RUSYN,
+  RUSSIAN,
+  QUECHUA,
+  PUSHTU,
+  PUNJABI,
+  PERSIAN,
+  PAPIAMENTO,
+  ORIYA,
+  NEPALI,
+  NDEBELE,
+  MARATHI,
+  MOLDAVIAN,
+  MALAYSIAN,
+  MALAGASAY,
+  MACEDONIAN,
+  LAOTIAN,
+  KOREAN,
+  KHMER,
+  KAZAKH,
+  KANNADA,
+  JAPANESE,
+  INDONESIAN,
+  HINDI,
+  HEBREW,
+  HAUSA,
+  GURANI,
+  GUJURATI,
+  GREEK,
+  GEORGIAN,
+  FULANI,
+  DARI,
+  CHUVASH,
+  CHINESE,
+  BURMESE,
+  BULGARIAN,
+  BENGALI,
+  BELORUSSIAN,
+  BAMBORA,
+  AZERBAIJANI,
+  ASSAMESE,
+  ARMENIAN,
+  ARABIC,
+  AMHARIC,
+  UNDEFINED = 0xFF,
 };
 
-// signalplotprops
-//
-// Defines signal meter plot properties
-struct signalplotprops
+union channelid_t
 {
+  struct
+  {
+    // FFFFFFFFFFFFFFFFFFFF SSSSSSSS MMMM (little endian)
+    //
+    unsigned int modulation : 4; // Modulation (0-15)
+    unsigned int subchannel : 8; // Subchannel (0-255)
+    unsigned int frequency : 20; // Frequency in KHz (0-1048575)
+  } parts;
 
-  size_t height; // Plot height
-  size_t width; // Plot width
-  float mindb; // Plot minimum dB value
-  float maxdb; // Plot maximum dB value
+  unsigned int value; // Complete channel id
 };
 
-// signalprops
-//
-// Defines signal-specific properties
-struct signalprops
+static_assert(sizeof(channelid_t) == sizeof(uint32_t),
+              "channelid_t union must be same size as a uint32_t");
+
+class CChannelId
 {
+public:
+  CChannelId(unsigned int channelid) { m_channelid.value = channelid; }
 
-  uint32_t samplerate; // Signal sampling rate
-  uint32_t bandwidth; // Signal bandwidth
-  int32_t lowcut; // low cut from center
-  int32_t highcut; // high cut from center
-  uint32_t offset; // Signal frequency offset
-  bool filter; // Flag to filter the signal
+  CChannelId(int frequency, enum Modulation modulation)
+  {
+    m_channelid.parts.frequency = static_cast<unsigned int>(frequency / 1000);
+    m_channelid.parts.subchannel = 0;
+    m_channelid.parts.modulation = static_cast<unsigned int>(modulation);
+  }
+
+  CChannelId(int frequency, int subchannel, enum Modulation modulation)
+  {
+    m_channelid.parts.frequency = static_cast<unsigned int>(frequency / 1000);
+    m_channelid.parts.subchannel = static_cast<unsigned int>(subchannel);
+    m_channelid.parts.modulation = static_cast<unsigned int>(modulation);
+  }
+
+  unsigned int Frequency() const
+  {
+    return static_cast<unsigned int>(m_channelid.parts.frequency) * 1000;
+  }
+
+  unsigned int Id() const { return m_channelid.value; }
+
+  enum Modulation Modulation() const
+  {
+    return static_cast<enum Modulation>(m_channelid.parts.modulation);
+  }
+
+  unsigned int SubChannel() const
+  {
+    return static_cast<unsigned int>(m_channelid.parts.subchannel);
+  }
+
+private:
+  CChannelId() = delete;
+
+  channelid_t m_channelid; // Underlying channel identifier
 };
 
-// streamprops
-//
-// Defines stream-specific properties
-struct streamprops
+struct ChannelProps
 {
+  ChannelProps(unsigned int channelid)
+    : id(channelid),
+      frequency(id.Frequency()),
+      subchannelnumber(id.SubChannel()),
+      modulation(id.Modulation())
+  {
+  }
 
-  char const* codec; // Stream codec name
-  int pid; // Stream PID
-  int channels; // Stream number of channels
-  int samplerate; // Stream sample rate
-  int bitspersample; // Stream bits per sample
+  ChannelProps(int frequency, enum Modulation modulation)
+    : id(frequency, modulation), frequency(frequency), modulation(modulation)
+  {
+  }
+
+  ChannelProps(int frequency, int subchannel, enum Modulation modulation)
+    : id(frequency, subchannel, modulation),
+      frequency(frequency),
+      subchannelnumber(subchannel),
+      modulation(modulation)
+  {
+  }
+
+  struct Fallback
+  {
+    Fallback(uint32_t freq, enum Modulation mod, uint32_t id)
+      : frequency(freq), modulation(mod), service_id(id)
+    {
+    }
+    uint32_t frequency;
+    enum Modulation modulation;
+    uint32_t service_id;
+  };
+
+  bool ChannelProps::operator==(const ChannelProps& other) const
+  {
+    return (channelnumber == other.channelnumber) && (subchannelnumber == other.subchannelnumber) &&
+           (frequency == other.frequency) && (modulation == other.modulation) &&
+           (name == other.name) && (provider == other.provider) && (logourl == other.logourl) &&
+           (programmtype == other.programmtype) && (country == other.country) &&
+           (language == other.language) && (transportmode == other.transportmode) &&
+           (datatype == other.datatype) && (visible == other.visible);
+  }
+
+  CChannelId id;
+  uint32_t channelnumber;
+  uint32_t subchannelnumber;
+  uint32_t frequency;
+  enum Modulation modulation;
+  std::string name;
+  std::string usereditname;
+  std::string provider;
+  std::string logourl;
+  std::string userlogourl;
+  enum ProgrammType programmtype;
+  enum CountryCode country;
+  enum LanguageCode language;
+  enum TransportMode transportmode;
+  std::string datatype;
+  std::vector<Fallback> fallbacks;
+  bool visible;
+
+  bool autogain{false}; // Flag indicating if automatic gain should be used
+  int manualgain{0}; // Manual gain value as 10*dB (i.e. 32.8dB = 328)
+  int freqcorrection{0}; // Frequency correction for this channel
 };
 
-// subchannelprops
-//
-// Defines properties for a radio subchannel
-struct subchannelprops
-{
-
-  uint32_t number; // Subchannel number
-  std::string name; // Subchannel name
-  std::string logourl; // Subchannel logo URL
-};
-
-// tunerprops
-//
-// Defines tuner-specific properties
-struct tunerprops
-{
-
-  int freqcorrection; // Frequency correction (PPM)
-};
-
-// wxprops
-//
-// Defines properties for the Weather Radio digital signal processor
-struct wxprops
-{
-
-  uint32_t samplerate; // Input sample rate in Hertz
-  uint32_t outputrate; // Output sample rate in Hertz
-  float outputgain; // Output gain in Decibels
-};
-
-//-----------------------------------------------------------------------------
-
-#pragma warning(pop)
-
-#endif // __PROPS_H_
+} // namespace RTLRADIO

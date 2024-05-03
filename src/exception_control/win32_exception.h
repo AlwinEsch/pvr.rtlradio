@@ -26,6 +26,10 @@
 
 #include <exception>
 #include <string>
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif // !WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 #pragma warning(push, 4)
@@ -53,7 +57,7 @@ public:
 
   // char const* conversion operator
   //
-  operator char const*() const;
+  operator char const *() const;
 
   //-------------------------------------------------------------------------
   // Member Functions

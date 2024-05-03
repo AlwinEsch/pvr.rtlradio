@@ -55,7 +55,7 @@ public:
 
   // char const* conversion operator
   //
-  operator char const*() const { return m_what.c_str(); }
+  operator char const *() const { return m_what.c_str(); }
 
   //-------------------------------------------------------------------------
   // Member Functions

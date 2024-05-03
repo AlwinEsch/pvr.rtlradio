@@ -40,6 +40,7 @@ obj-x86_64-linux-gnu/
 
 # Visual Studio Code
 .vscode
+/out
 
 # to prevent add if project code opened by Visual Studio over CMake file
 .vs/

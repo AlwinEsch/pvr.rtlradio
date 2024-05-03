@@ -19,6 +19,11 @@
           <control type="spinner" format="integer"/>
         </setting>
 
+        <setting id="device_last_freq" type="integer">
+          <visible>false</visible>
+          <default>216928000</default>
+        </setting>
+
       </group>
 		
       <group id="2" label="30118">

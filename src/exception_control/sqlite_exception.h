@@ -24,11 +24,19 @@
 #define __SQLITE_EXCEPTION_H_
 #pragma once
 
+#include "utils/source_location.hpp"
+
 #include <exception>
-#include <sqlite3.h>
 #include <string>
 
+#include <sqlite3.h>
+
 #pragma warning(push, 4)
+
+//! @brief Macro to get shorter version of call.
+#ifndef __src_loc_cur__
+#define __src_loc_cur__ nostd::source_location::current()
+#endif // ! __src_loc_cur__
 
 //-----------------------------------------------------------------------------
 // Class sqlite_exception
@@ -40,8 +48,8 @@ class sqlite_exception : public std::exception
 public:
   // Instance Constructors
   //
-  sqlite_exception(int code);
-  sqlite_exception(int code, char const* message);
+  sqlite_exception(const nostd::source_location location, int code);
+  sqlite_exception(const nostd::source_location location, int code, char const* message);
 
   // Copy Constructor
   //
@@ -53,7 +61,7 @@ public:
 
   // char const* conversion operator
   //
-  operator char const*() const;
+  operator char const *() const;
 
   //-------------------------------------------------------------------------
   // Member Functions
@@ -63,11 +71,14 @@ public:
   // Gets a pointer to the exception message text
   virtual char const* what(void) const noexcept override;
 
+  const nostd::source_location location(void) const noexcept { return m_location; }
+
 private:
   //-------------------------------------------------------------------------
   // Member Variables
 
   std::string m_what; // SQLite error message
+  const nostd::source_location m_location;
 };
 
 //-----------------------------------------------------------------------------

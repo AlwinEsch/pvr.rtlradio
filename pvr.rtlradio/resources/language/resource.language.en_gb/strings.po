@@ -44,6 +44,22 @@ msgctxt "#30005"
 msgid "DAB"
 msgstr ""
 
+msgctxt "#30020"
+msgid "Medium wave (MW)"
+msgstr ""
+
+msgctxt "#30021"
+msgid "FM broadcasting"
+msgstr ""
+
+msgctxt "#30022"
+msgid "DAB/DAB+ (Channel: {0:s})"
+msgstr ""
+
+msgctxt "#30023"
+msgid "Unknown frequency type"
+msgstr ""
+
 #
 # 301XX - Setting names
 #
@@ -96,7 +112,9 @@ msgctxt "#30111"
 msgid "Downsample quality"
 msgstr ""
 
-# 30112 can be reused
+msgctxt "#30112"
+msgid "Required settings"
+msgstr ""
 
 msgctxt "#30113"
 msgid "Coarse corrector algorithm"
@@ -107,7 +125,7 @@ msgid "Enable HD Radio"
 msgstr ""
 
 msgctxt "#30115"
-msgid "Enable DAB"
+msgid "Enable DAB/DAB+"
 msgstr ""
 
 msgctxt "#30116"
@@ -124,6 +142,102 @@ msgstr ""
 
 msgctxt "#30119"
 msgid "Device settings"
+msgstr ""
+
+msgctxt "#30120"
+msgid "Enable MW Radio"
+msgstr ""
+
+msgctxt "#30121"
+msgid "Enable FM Radio"
+msgstr ""
+
+msgctxt "#30122"
+msgid "Channel search"
+msgstr ""
+
+msgctxt "#30123"
+msgid "Channels found:"
+msgstr ""
+
+msgctxt "#30124"
+msgid "Provider: {0:s}"
+msgstr ""
+
+msgctxt "#30125"
+msgid "Freq. Fallbacks: {0:d}"
+msgstr ""
+
+msgctxt "#30126"
+msgid "Provider: {0:s}; Freq. Fallbacks: {1:d}"
+msgstr ""
+
+msgctxt "#30127"
+msgid "Signal status:"
+msgstr ""
+
+msgctxt "#30128"
+msgid "Amount found: {0:d}"
+msgstr ""
+
+msgctxt "#30129"
+msgid "Signal status: Channel {0:s}"
+msgstr ""
+
+msgctxt "#30130"
+msgid "Channel Search - Finished"
+msgstr ""
+
+msgctxt "#30131"
+msgid "Channel settings"
+msgstr ""
+
+msgctxt "#30132"
+msgid "Informations:"
+msgstr ""
+
+msgctxt "#30133"
+msgid "Settings:"
+msgstr ""
+
+msgctxt "#30134"
+msgid "Visible"
+msgstr ""
+
+msgctxt "#30135"
+msgid "Name"
+msgstr ""
+
+msgctxt "#30136"
+msgid "Icon"
+msgstr ""
+
+msgctxt "#30137"
+msgid "Provider:"
+msgstr ""
+
+msgctxt "#30138"
+msgid "Modulation:"
+msgstr ""
+
+msgctxt "#30139"
+msgid "Frequency / Block:"
+msgstr ""
+
+msgctxt "#30140"
+msgid "{0:d} kHz"
+msgstr ""
+
+msgctxt "#30141"
+msgid "{0:.1f} MHz"
+msgstr ""
+
+msgctxt "#30142"
+msgid "{0:s} ({1:.3f} MHz)"
+msgstr ""
+
+msgctxt "#30143"
+msgid "Device index is greater than the number of devices ({0:d} >= {0:d})"
 msgstr ""
 
 #
@@ -229,10 +343,9 @@ msgctxt "#30225"
 msgid "Pattern of zeros"
 msgstr ""
 
-
 #
 # 303XX - Dialog box controls
-# 
+#
 
 msgctxt "#30300"
 msgid "Enter frequency"
@@ -359,11 +472,11 @@ msgid "Signal meter"
 msgstr ""
 
 msgctxt "#30331"
-msgid "Gain:"
+msgid "Power:"
 msgstr ""
 
 msgctxt "#30332"
-msgid "Power:"
+msgid "Noise:"
 msgstr ""
 
 msgctxt "#30333"
@@ -392,6 +505,10 @@ msgstr ""
 
 msgctxt "#30339"
 msgid "Add channels..."
+msgstr ""
+
+msgctxt "#30340"
+msgid "Programme type:"
 msgstr ""
 
 #
@@ -426,22 +543,6 @@ msgctxt "#30407"
 msgid "Channel settings"
 msgstr ""
 
-msgctxt "#30408"
-msgid "FM channels"
-msgstr ""
-
-msgctxt "#30409"
-msgid "HD channels"
-msgstr ""
-
-msgctxt "#30410"
-msgid "Weather channels"
-msgstr ""
-
-msgctxt "#30411"
-msgid "DAB channels"
-msgstr ""
-
 msgctxt "#30412"
 msgid "Select raw input file"
 msgstr ""
@@ -468,6 +569,36 @@ msgstr ""
 
 msgctxt "#30418"
 msgid "Select DAB ensemble"
+msgstr ""
+
+#. Used for PVR API about channel group name
+#: src/instance_pvr/pvr.cpp
+msgctxt "#30450"
+msgid "MW channels"
+msgstr ""
+
+#. Used for PVR API about channel group name
+#: src/instance_pvr/pvr.cpp
+msgctxt "#30451"
+msgid "FM channels"
+msgstr ""
+
+#. Used for PVR API about channel group name
+#: src/instance_pvr/pvr.cpp
+msgctxt "#30452"
+msgid "DAB/DAB+ channels"
+msgstr ""
+
+#. Used for PVR API about channel group name
+#: src/instance_pvr/pvr.cpp
+msgctxt "#30453"
+msgid "HD channels"
+msgstr ""
+
+#. Used for PVR API about channel group name
+#: src/instance_pvr/pvr.cpp
+msgctxt "#30454"
+msgid "Weather channels"
 msgstr ""
 
 #
@@ -536,4 +667,40 @@ msgstr ""
 
 msgctxt "#30517"
 msgid "When set to ON the channel number will be prepended to the channel name when reported to Kodi."
+msgstr ""
+
+
+
+msgctxt "#30600"
+msgid "First RTL-SDR radio add-on start"
+msgstr ""
+
+msgctxt "#30601"
+msgid "Next"
+msgstr ""
+
+msgctxt "#30602"
+msgid "Finish"
+msgstr ""
+
+msgctxt "#30603"
+msgid "Back"
+msgstr ""
+
+msgctxt "#30604"
+msgid "Cancel"
+msgstr ""
+
+msgctxt "#30605"
+msgid "[B]Welcome to the first use of the add-on[/B]\n"
+"\n"
+"In order to make it suitable for your region and use of the RTL-SDR USB stick, a few settings are necessary.\n"
+"\n"
+"This add-on supports the world's most common radio reception types, so it is necessary to set your region. In addition, RTL-SDR allows use either via USB or via TCP network address.\n"
+"\n"
+"[I][B]Note:[/B][/I] If you close this dialog now, you will have to configure the necessary add-on settings in Kodi's add-on dialog and set the desired channels yourself in Kodi's PVR settings."
+msgstr ""
+
+msgctxt "#30606"
+msgid "Are you sure to finish the add-on configuration because it has not been completed?"
 msgstr ""

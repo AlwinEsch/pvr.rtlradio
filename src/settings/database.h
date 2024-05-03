@@ -1,0 +1,48 @@
+/*
+ *  Copyright (C) 2024 Team Kodi (https://kodi.tv)
+ *
+ *  SPDX-License-Identifier: MIT
+ *  See LICENSE.md for more information.
+ */
+
+#pragma once
+
+#include "database_control.h"
+#include "props.h"
+
+namespace RTLRADIO
+{
+namespace SETTINGS
+{
+namespace DB
+{
+
+using callback_GetChannels = std::function<void(const struct ChannelProps& channel)>;
+
+class CConPoolPVR : public CConPool
+{
+public:
+  CConPoolPVR(const std::string& connstr, size_t poolsize, int flags)
+    : CConPool(connstr, poolsize, flags)
+  {
+  }
+  ~CConPoolPVR() = default;
+
+  std::string GetBaseDBName() const override { return "channels.db"; }
+  void InitDatabase(sqlite3* instance) override;
+
+  static void SetLastScanTime(sqlite3* instance, time_t time, unsigned int channelsfound);
+  static time_t GetLastScanTime(sqlite3* instance);
+
+  static int GetChannelsCount(sqlite3* instance);
+  static void GetChannels(sqlite3* instance,
+                          enum Modulation modulation,
+                          bool prependnumber,
+                          callback_GetChannels const& callback);
+  static bool ChannelExists(sqlite3* instance, unsigned int uniqueId);
+  static void ChannelScanSet(sqlite3* instance, const std::vector<ChannelProps>& channels);
+};
+
+} // namespace DB
+} // namespace SETTINGS
+} // namespace RTLRADIO

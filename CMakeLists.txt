@@ -3,39 +3,15 @@ project(pvr.rtlradio)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
-option(DISTRIBUTION_BUILD "Linux distribution build (without use of depends folder)" OFF)
-if(CORE_SYSTEM_NAME STREQUAL windowsstore OR
-   CORE_SYSTEM_NAME STREQUAL darwin_embedded OR
-   CORE_SYSTEM_NAME STREQUAL android)
-  set(USB_DEVICE_SUPPORT False)
-else()
-  option(USB_DEVICE_SUPPORT "Build add-on with USB device support, if set to \"OFF\" RTL-SDR can only be accessed via network" ON)
-endif()
-
-# Set values used about configure of settings.xml.in on add-on
-if(NOT USB_DEVICE_SUPPORT)
-  set(SETTINGS_XML_IN_CONNECTION_TYPE_NOTE "USB device not supported on this add-on, due to this the following setting is not usable and marked as not visible.")
-  set(SETTINGS_XML_IN_CONNECTION_TYPE_DEFAULT "1")
-  set(SETTINGS_XML_IN_CONNECTION_TYPE_VISIBLE "false")
-  set(SETTINGS_XML_IN_NO_USB_BEGIN "<!--")
-  set(SETTINGS_XML_IN_NO_USB_END "-->")
-else()
-  set(SETTINGS_XML_IN_CONNECTION_TYPE_NOTE "USB device supported on this add-on.")
-  set(SETTINGS_XML_IN_CONNECTION_TYPE_DEFAULT "0")
-  set(SETTINGS_XML_IN_CONNECTION_TYPE_VISIBLE "true")
-  set(SETTINGS_XML_IN_NO_USB_BEGIN "")
-  set(SETTINGS_XML_IN_NO_USB_END "")
-endif()
+include(cmake/USBDeviceSupportCheck.cmake)
 
 find_package(Kodi REQUIRED)
+find_package(FAAD2 REQUIRED)
 find_package(FFTW REQUIRED)
-find_package(FDK_AAC REQUIRED)
+find_package(fmt REQUIRED)
 find_package(glm REQUIRED)
-find_package(MPG123 REQUIRED)
-find_package(RapidJSON 1.1.0 REQUIRED)
 find_package(SQLite3 REQUIRED)
 if(USB_DEVICE_SUPPORT)
-  find_package(libusb-1.0 REQUIRED)
   find_package(rtlsdr REQUIRED)
 endif()
 
@@ -51,58 +27,66 @@ else()
   add_definitions(${OPENGLES_DEFINITIONS})
 endif()
 
-add_definitions(-DDABLIN_AAC_FDKAAC -DFFTW_NO_Complex -Drtlsdr_EXPORTS=1)
-
-include_directories(${KODI_INCLUDE_DIR}/.. # Hack way with "/..", need bigger Kodi cmake rework to match right include ways
-                    ${FFTW_INCLUDE_DIRS}
-                    ${FDK_AAC_INCLUDE_DIRS}
-                    ${GLM_INCLUDE_DIR}
-                    ${MPG123_INCLUDE_DIR}
-                    ${RAPIDJSON_INCLUDE_DIRS}
-                    ${SQLITE3_INCLUDE_DIR})
-
-list(APPEND DEPLIBS ${FDK_AAC_LIBRARIES}
-                    ${FFTW_LONGDOUBLE_LIB}
-                    ${MPG123_LIBRARIES}
-                    ${SQLITE3_LIBRARY})
-
-if(USB_DEVICE_SUPPORT)
-  if(NOT DISTRIBUTION_BUILD)
-    list(APPEND DEPLIBS ${LIBUSB_1_LIBRARIES})
-  endif()
-
-  include_directories(${LIBUSB_1_INCLUDE_DIRS}
-                      ${rtlsdr_INCLUDE_DIRS})
-  list(APPEND DEPLIBS ${RTLSDR_LIBRARIES})
-
-  add_definitions(-DUSB_DEVICE_SUPPORT)
+# Set new KODI_INCLUDE_DIRS by hack way with "/..", need bigger Kodi cmake rework to match right include ways
+if(NOT KODI_INCLUDE_DIRS)
+  set(KODI_INCLUDE_DIRS ${KODI_INCLUDE_DIR}/..)
 endif()
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/src)
+include_directories(${PROJECT_SOURCE_DIR}/src # To get headers without "../"
+                    ${PROJECT_SOURCE_DIR}/src/dsp_dab/process_lib # To let DAB-Radio inside find his headers
+                    ${PROJECT_SOURCE_DIR}/src/utils # To allow DAB-Radio lib the find of "viterbi"
+                    ${FAAD2_INCLUDE_DIR}
+                    ${GLM_INCLUDE_DIR}
+                    ${KODI_INCLUDE_DIRS}
+                    ${LIBFMT_INCLUDE_DIRS}
+                    ${SQLITE3_INCLUDE_DIR}
+                    $<$<BOOL:${USB_DEVICE_SUPPORT}>:${RTLSDR_INCLUDE_DIRS}>)
+
+add_subdirectory(${PROJECT_SOURCE_DIR}/src/audio)
+add_subdirectory(${PROJECT_SOURCE_DIR}/src/device)
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/dsp_dab)
-add_subdirectory(${PROJECT_SOURCE_DIR}/src/dsp_fm)
-add_subdirectory(${PROJECT_SOURCE_DIR}/src/dsp_hd)
-add_subdirectory(${PROJECT_SOURCE_DIR}/src/gui)
+add_subdirectory(${PROJECT_SOURCE_DIR}/src/dsp_dab/process_lib)
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/exception_control)
+add_subdirectory(${PROJECT_SOURCE_DIR}/src/gui)
+add_subdirectory(${PROJECT_SOURCE_DIR}/src/instance_inputstream)
+add_subdirectory(${PROJECT_SOURCE_DIR}/src/instance_pvr)
+add_subdirectory(${PROJECT_SOURCE_DIR}/src/settings)
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/utils)
 
-list(APPEND DEPLIBS code_src
+if(WIN32)
+  add_definitions(-DWIN32_LEAN_AND_MEAN)
+endif()
+
+list(APPEND DEPLIBS code_src_audio
+                    code_src_device
                     code_src_dsp_dab
-                    code_src_dsp_fm
-                    code_src_dsp_hd
-                    code_src_gui
-                    code_src_utils
                     code_src_exception_control
+                    code_src_gui
+                    code_src_instance_inputstream
+                    code_src_instance_pvr
+                    code_src_settings
+                    code_src_utils
+                    ofdm_core
+                    dab_core
+                    basic_radio
+                    basic_scraper
+                    ${FAAD2_LIBRARY}
+                    ${FFTW_FLOAT_LIB}
+                    ${LIBFMT_LIBRARIES}
+                    ${SQLITE3_LIBRARY}
+                    $<$<BOOL:${USB_DEVICE_SUPPORT}>:${RTLSDR_LIBRARIES}>
                     $<$<BOOL:${WIN32}>:ws2_32>
                     $<$<BOOL:${WIN32}>:Shlwapi>)
 
 set(PVRRTLRADIO_SOURCES src/addon.cpp)
-set(PVRRTLRADIO_HEADERS src/addon.h)
 
-build_addon(${CMAKE_PROJECT_NAME} PVRRTLRADIO DEPLIBS)
+set(PVRRTLRADIO_HEADERS src/addon.h
+                        src/api_defines.h
+                        src/props.h)
 
-target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE "VERSION_PRODUCTNAME_ANSI=\"${CMAKE_PROJECT_NAME}\"")
-target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE "VERSION_VERSION3_ANSI=\"${PVRRTLRADIO_VERSION}\"")
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+build_addon(pvr.rtlradio PVRRTLRADIO DEPLIBS)
+
+target_compile_definitions(pvr.rtlradio PRIVATE rtlsdr_EXPORTS=1
+                                                $<$<BOOL:${USB_DEVICE_SUPPORT}>:USB_DEVICE_SUPPORT=1>)
 
 include(CPack)
