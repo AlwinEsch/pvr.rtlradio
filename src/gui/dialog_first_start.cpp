@@ -456,11 +456,10 @@ void CDialogFirstStart::ScanChannelFound(const ChannelProps& props)
           if (props.subchannelnumber > 0 && entry.subchannelnumber > 0 &&
               props.subchannelnumber != entry.subchannelnumber)
             return false;
-          if (props.country != CountryCode::UNDEFINED && entry.country != CountryCode::UNDEFINED &&
-              props.country != entry.country)
+          if (!props.country.empty() && !entry.country.empty() && props.country != entry.country)
             return false;
-          if (props.language != LanguageCode::UNDEFINED &&
-              entry.language != LanguageCode::UNDEFINED && props.language != entry.language)
+          if (!props.language.empty() && !entry.language.empty() &&
+              props.language != entry.language)
             return false;
           return true;
         });

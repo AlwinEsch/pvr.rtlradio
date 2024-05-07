@@ -22,8 +22,16 @@
 namespace RTLRADIO
 {
 
+constexpr const char* PVR_STREAM_PROPERTY_UNIQUEID = "pvr.rtlradio.uniqueid";
+constexpr const char* PVR_STREAM_PROPERTY_FREQUENCY = "pvr.rtlradio.frequency";
+constexpr const char* PVR_STREAM_PROPERTY_SUBCHANNEL = "pvr.rtlradio.subchannel";
+constexpr const char* PVR_STREAM_PROPERTY_MODULATION = "pvr.rtlradio.modulation";
+
 enum class Modulation : uint8_t
 {
+  UNDEFINED = 0x1F,
+  ALL = 0xFF,
+
   //! Medium wave (MW) for AM radio broadcasting
   MW = 0,
 
@@ -447,6 +455,13 @@ public:
     m_channelid.parts.modulation = static_cast<unsigned int>(modulation);
   }
 
+  CChannelId(const CChannelId& other) { m_channelid.value = other.m_channelid.value; }
+
+  bool operator==(const CChannelId& other) const
+  {
+    return (m_channelid.value == other.m_channelid.value);
+  }
+
   unsigned int Frequency() const
   {
     return static_cast<unsigned int>(m_channelid.parts.frequency) * 1000;
@@ -472,6 +487,8 @@ private:
 
 struct ChannelProps
 {
+  ChannelProps() = delete;
+
   ChannelProps(unsigned int channelid)
     : id(channelid),
       frequency(id.Frequency()),
@@ -493,6 +510,17 @@ struct ChannelProps
   {
   }
 
+  bool ChannelProps::operator==(const ChannelProps& other) const
+  {
+    return (channelnumber == other.channelnumber) && (subchannelnumber == other.subchannelnumber) &&
+           (frequency == other.frequency) && (modulation == other.modulation) &&
+           (name == other.name) && (provider_id == other.provider_id) &&
+           (logourl == other.logourl) && (programmtype == other.programmtype) &&
+           (country == other.country) && (language == other.language) &&
+           (transportmode == other.transportmode) && (mimetype == other.mimetype) &&
+           (visible == other.visible);
+  }
+
   struct Fallback
   {
     Fallback(uint32_t freq, enum Modulation mod, uint32_t id)
@@ -504,16 +532,6 @@ struct ChannelProps
     uint32_t service_id;
   };
 
-  bool ChannelProps::operator==(const ChannelProps& other) const
-  {
-    return (channelnumber == other.channelnumber) && (subchannelnumber == other.subchannelnumber) &&
-           (frequency == other.frequency) && (modulation == other.modulation) &&
-           (name == other.name) && (provider == other.provider) && (logourl == other.logourl) &&
-           (programmtype == other.programmtype) && (country == other.country) &&
-           (language == other.language) && (transportmode == other.transportmode) &&
-           (datatype == other.datatype) && (visible == other.visible);
-  }
-
   CChannelId id;
   uint32_t channelnumber;
   uint32_t subchannelnumber;
@@ -522,19 +540,66 @@ struct ChannelProps
   std::string name;
   std::string usereditname;
   std::string provider;
+  uint32_t provider_id;
   std::string logourl;
   std::string userlogourl;
   enum ProgrammType programmtype;
-  enum CountryCode country;
-  enum LanguageCode language;
+  std::string country;
+  std::string language;
   enum TransportMode transportmode;
-  std::string datatype;
+  std::string mimetype;
   std::vector<Fallback> fallbacks;
+  bool notpublic;
   bool visible;
 
   bool autogain{false}; // Flag indicating if automatic gain should be used
   int manualgain{0}; // Manual gain value as 10*dB (i.e. 32.8dB = 328)
   int freqcorrection{0}; // Frequency correction for this channel
+};
+
+struct ProviderProps
+{
+  ProviderProps() = default;
+
+  ProviderProps(const ProviderProps& other) { *this = other; }
+
+  ProviderProps& operator=(const ProviderProps& other)
+  {
+    // Guard self assignment
+    if (this == &other)
+      return *this;
+
+    id = other.id;
+    name = other.name;
+    logourl = other.logourl;
+    country = other.country;
+    language = other.language;
+    return *this;
+  }
+
+  bool operator==(const ProviderProps& other)
+  {
+    // Guard self assignment
+    if (this == &other)
+      return true;
+
+    if (id == other.id && name == other.name && logourl == other.logourl &&
+        country == other.country && language == other.language)
+      return true;
+    return false;
+  }
+
+  unsigned int id;
+  std::string name;
+  std::string logourl;
+
+  //! @brief ISO 3166 country codes, separated by PROVIDER_STRING_TOKEN_SEPARATOR
+  /// (e.g 'GB,IE,FR,CA'), an empty string means this value is undefined
+  std::string country;
+
+  //! @brief RFC 5646 language codes, separated by PROVIDER_STRING_TOKEN_SEPARATOR
+  /// (e.g. 'en_GB,fr_CA'), an empty string means this value is undefined
+  std::string language;
 };
 
 } // namespace RTLRADIO

@@ -16,6 +16,8 @@ http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/n4820.pdf
 #include <cstdint>
 #include <type_traits>
 
+#define TCB_SPAN_NO_CONTRACT_CHECKING
+
 #ifndef TCB_SPAN_NO_EXCEPTIONS
 // Attempt to discover whether we're being compiled with exception support
 #if !(defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND))

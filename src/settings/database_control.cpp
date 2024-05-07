@@ -87,7 +87,7 @@ sqlite3* CConPool::OpenDatabase(bool initialize)
   try
   {
     // switch the database to write-ahead logging
-    execute_non_query(instance, "PRAGMA journal_mode=wal");
+    execute_non_query(__src_loc_cur__, instance, "PRAGMA journal_mode=wal");
 
     // Only execute schema creation steps if the database is being initialized; the caller needs
     // to ensure that this is set for only one connection otherwise locking issues can occur
@@ -180,6 +180,20 @@ void bind_parameter(sqlite3_stmt* statement, int& paramindex, time_t value)
   int result = sqlite3_bind_int64(statement, paramindex++, static_cast<int64_t>(value));
   if (result != SQLITE_OK)
     throw sqlite_exception(__src_loc_cur__, result);
+}
+
+bool try_execute_non_query(sqlite3* instance, char const* sql)
+{
+  try
+  {
+    execute_non_query(__src_loc_cur__, instance, sql);
+  }
+  catch (...)
+  {
+    return false;
+  }
+
+  return true;
 }
 
 } // namespace DB

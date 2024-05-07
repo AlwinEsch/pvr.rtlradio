@@ -24,6 +24,9 @@
 namespace
 {
 
+static constexpr size_t DATA_SIZE = sizeof(float) * Frame<float>::TOTAL_AUDIO_CHANNELS;
+static constexpr float DATA_GAIN = 1.0f / float(std::numeric_limits<int16_t>::max());
+
 template<typename T, typename U, typename F>
 static void audio_map_with_callback(tcb::span<const Frame<T>> src,
                                     tcb::span<Frame<U>> dest,
@@ -95,8 +98,8 @@ static void audio_clamp_inplace(tcb::span<Frame<T>> buf, const T v_min, const T 
 
 } // namespace
 
-AudioPipelineSource::AudioPipelineSource(float sampling_rate, size_t buffer_length)
-  : m_sampling_rate(sampling_rate), m_ring_buffer(buffer_length)
+AudioPipelineSource::AudioPipelineSource(uint32_t id, float sampling_rate, size_t buffer_length)
+  : m_id(id), m_sampling_rate(sampling_rate), m_ring_buffer(buffer_length)
 {
 }
 
@@ -104,22 +107,21 @@ void AudioPipelineSource::write(tcb::span<const Frame<int16_t>> src,
                                 float src_sampling_rate,
                                 bool is_blocking)
 {
-  const float gain = m_gain / float(std::numeric_limits<int16_t>::max());
   const size_t resample_length = size_t(float(src.size()) * m_sampling_rate / src_sampling_rate);
   m_resampling_buffer.resize(resample_length);
 
   if (resample_length == src.size())
   {
-    audio_map_with_callback<int16_t, float>(
-        src, m_resampling_buffer, [gain](Frame<float>& v_dest, const Frame<int16_t>& v_src) {
-          v_dest = static_cast<Frame<float>>(v_src) * gain;
-        });
+    audio_map_with_callback<int16_t, float>(src, m_resampling_buffer,
+                                            [](Frame<float>& v_dest, const Frame<int16_t>& v_src) {
+                                              v_dest = static_cast<Frame<float>>(v_src) * DATA_GAIN;
+                                            });
   }
   else
   {
     audio_resample_with_callback<int16_t, float>(
         src, m_resampling_buffer,
-        [gain](Frame<float>& v_dest, const Frame<float>& v_src) { v_dest = v_src * gain; });
+        [](Frame<float>& v_dest, const Frame<float>& v_src) { v_dest = v_src * DATA_GAIN; });
   }
 
   auto lock = std::unique_lock(m_mutex_ring_buffer);
@@ -135,7 +137,10 @@ void AudioPipelineSource::write(tcb::span<const Frame<int16_t>> src,
     const size_t total_read = m_ring_buffer.write(read_buffer);
     read_buffer = read_buffer.subspan(total_read);
     if (read_buffer.empty())
+    {
       break;
+    }
+
     m_cv_ring_buffer.wait(lock, [this] { return !m_ring_buffer.is_full(); });
   }
 }
@@ -153,31 +158,66 @@ bool AudioPipelineSource::read(tcb::span<Frame<float>> dest)
   return true;
 }
 
-void AudioPipeline::set_sink(std::unique_ptr<AudioPipelineSink>&& sink)
+void AudioPipeline::set_active(bool active)
 {
-  m_sink = std::move(sink);
-  if (m_sink == nullptr)
-    return;
-  m_sink->set_callback([this](tcb::span<Frame<float>> dest, float dest_sampling_rate) {
-    mix_sources_to_sink(dest, dest_sampling_rate);
-  });
+  m_active = active;
 }
 
-void AudioPipeline::mix_sources_to_sink(tcb::span<Frame<float>> dest, float dest_sampling_rate)
+bool AudioPipeline::source_to_sink(tcb::span<Frame<float>> dest, float dest_sampling_rate)
+{
+  if (m_single)
+    return single_source_to_sink(dest, dest_sampling_rate);
+  else
+    return mix_sources_to_sink(dest, dest_sampling_rate);
+}
+
+bool AudioPipeline::single_source_to_sink(tcb::span<Frame<float>> dest, float dest_sampling_rate)
+{
+  std::shared_ptr<AudioPipelineSource> source;
+
+  {
+    auto lock = std::scoped_lock(m_mutex_sources);
+    source = m_single_source;
+  }
+
+  const size_t N_dest = dest.size();
+  const size_t N_size = N_dest * DATA_SIZE;
+  const float src_sampling_rate = source->get_sampling_rate();
+  const size_t N_src = size_t(float(N_dest) * src_sampling_rate / dest_sampling_rate);
+  m_read_buffer.resize(N_src);
+
+  if (!source->read(m_read_buffer))
+  {
+    std::memset(dest.data(), 0, N_size);
+    return false;
+  }
+
+  if (m_read_buffer.size() == dest.size())
+  {
+    std::memcpy(dest.data(), m_read_buffer.data(), N_size);
+  }
+  else
+  {
+    audio_resample_with_callback<float>(
+        m_read_buffer, dest,
+        [](Frame<float>& v_dest, const Frame<float>& v_src) { v_dest = v_src; });
+  }
+
+  return true;
+}
+
+bool AudioPipeline::mix_sources_to_sink(tcb::span<Frame<float>> dest, float dest_sampling_rate)
 {
   const size_t N_dest = dest.size();
-  for (auto& v : dest)
-  {
-    for (size_t i = 0; i < Frame<float>::TOTAL_AUDIO_CHANNELS; i++)
-    {
-      v.channels[i] = 0.0f;
-    }
-  }
+  std::memset(dest.data(), 0, N_dest * DATA_SIZE);
+
   std::vector<std::shared_ptr<AudioPipelineSource>> sources;
+
   {
     auto lock = std::scoped_lock(m_mutex_sources);
     sources = m_sources;
   }
+
   size_t total_sources_mixed = 0;
   for (auto& source : sources)
   {
@@ -186,21 +226,24 @@ void AudioPipeline::mix_sources_to_sink(tcb::span<Frame<float>> dest, float dest
     m_read_buffer.resize(N_src);
 
     if (!source->read(m_read_buffer))
-    {
       continue;
-    }
 
     audio_resample_same_type_with_callback<float>(
         m_read_buffer, dest,
         [](Frame<float>& v_dest, const Frame<float>& v_src) { v_dest += v_src; });
-    total_sources_mixed++;
+    ++total_sources_mixed;
   }
 
-  const float gain = m_global_gain / std::log10(float(total_sources_mixed * 10.0f));
-  for (auto& v : dest)
+  if (total_sources_mixed > 1)
   {
-    v = v * gain;
+    const float gain = m_global_gain / std::log10(float(total_sources_mixed * 10.0f));
+    for (auto& v : dest)
+    {
+      v = v * gain;
+    }
+
+    audio_clamp_inplace(dest, -1.0f, 1.0f);
   }
 
-  audio_clamp_inplace(dest, -1.0f, 1.0f);
+  return total_sources_mixed > 0;
 }

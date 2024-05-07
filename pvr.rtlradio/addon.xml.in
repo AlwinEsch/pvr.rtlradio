@@ -11,7 +11,7 @@
   <extension
     point="kodi.inputstream"
     name="pvr.rtlradio"
-    listitemprops="provider|channel"/>
+    listitemprops="uniqueid|frequency|subchannel|modulation"/>
   <extension point="xbmc.addon.metadata">
     <platform>@PLATFORM@</platform>
     <license>MIT License (https://opensource.org/licenses/MIT)</license>

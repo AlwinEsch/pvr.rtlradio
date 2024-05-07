@@ -17,6 +17,7 @@ namespace RTLRADIO
 namespace INSTANCE
 {
 class CPVR;
+class CInputstreamBase;
 } // namespace INSTANCE
 
 namespace SETTINGS
@@ -28,7 +29,7 @@ class CAddon : public kodi::addon::CAddonBase
 {
 public:
   CAddon();
-  ~CAddon() override;
+  ~CAddon();
 
   //! kodi::addon::CAddonBase functions
   //@{
@@ -45,6 +46,7 @@ public:
 
 private:
   std::shared_ptr<SETTINGS::CSettings> m_settings;
+  std::unique_ptr<INSTANCE::CInputstreamBase> m_inputstreamBase;
   INSTANCE::CPVR* m_activePVRInstance{nullptr};
 };
 

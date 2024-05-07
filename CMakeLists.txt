@@ -4,6 +4,19 @@ project(pvr.rtlradio)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
 include(cmake/USBDeviceSupportCheck.cmake)
+include(cmake/PlatformCompileOptimization.cmake)
+
+message("Build configuration:")
+message("  Target platform: ${CORE_SYSTEM_NAME}")
+message("  Build type: ${CMAKE_BUILD_TYPE}")
+message("  Target CPU: ${TARGET_CPU}")
+message("  Option \"USB_DEVICE_SUPPORT\": ${USB_DEVICE_SUPPORT}")
+message("  Option \"USE_WARNINGS_AS_ERROR\": ${USE_WARNINGS_AS_ERROR}")
+if(CORE_SYSTEM_NAME STREQUAL windows OR CORE_SYSTEM_NAME STREQUAL windowsstore)
+  message("  Option \"MATH_OPTIMIZATION\": ${MATH_OPTIMIZATION}")
+endif()
+message("  C flags: ${CMAKE_C_FLAGS}")
+message("  C++ flags: ${CMAKE_CXX_FLAGS}")
 
 find_package(Kodi REQUIRED)
 find_package(FAAD2 REQUIRED)
@@ -42,6 +55,14 @@ include_directories(${PROJECT_SOURCE_DIR}/src # To get headers without "../"
                     ${SQLITE3_INCLUDE_DIR}
                     $<$<BOOL:${USB_DEVICE_SUPPORT}>:${RTLSDR_INCLUDE_DIRS}>)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+#set(CMAKE_CXX_FLAGS "/arch:AVX2 /MP /fp:fast /EHsc /D_CRT_SECURE_NO_WARNINGS /D_SILENCE_NONFLOATING_COMPLEX_DEPRECATION_WARNING")
+#set(CMAKE_C_FLAGS "/arch:AVX2 /MP /fp:fast /EHsc /D_CRT_SECURE_NO_WARNINGS /D_SILENCE_NONFLOATING_COMPLEX_DEPRECATION_WARNING")
+
+
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/audio)
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/device)
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/dsp_dab)
@@ -56,6 +77,9 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/src/utils)
 if(WIN32)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
 endif()
+
+add_definitions(-DTCB_SPAN_THROW_ON_CONTRACT_VIOLATION)
+add_definitions(${ARCH_DEFINES})
 
 list(APPEND DEPLIBS code_src_audio
                     code_src_device

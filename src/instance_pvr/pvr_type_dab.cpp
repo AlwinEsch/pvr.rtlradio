@@ -14,7 +14,9 @@
 #include "dsp_dab/process_lib/basic_radio/basic_audio_channel.h"
 #include "dsp_dab/process_lib/basic_radio/basic_radio.h"
 #include "dsp_dab/process_lib/basic_scraper/basic_scraper.h"
+#include "dsp_dab/process_lib/dab/constants/country_table.h"
 #include "dsp_dab/process_lib/dab/constants/dab_parameters.h"
+#include "dsp_dab/process_lib/dab/constants/language_table.h"
 #include "dsp_dab/process_lib/dab/database/dab_database.h"
 #include "dsp_dab/process_lib/dab/database/dab_database_entities.h"
 #include "dsp_dab/process_lib/dab/database/dab_database_types.h"
@@ -44,7 +46,7 @@ public:
   }
   auto& get_radio() { return m_radio; }
   //auto& get_view_controller() { return m_view_controller; }
-  std::string_view get_name() const { return m_name; }
+  std::string_view GetName() const { return m_name; }
 };
 
 class CBasicRadioSwitcher : public IPVRRadioSwitcher
@@ -180,6 +182,7 @@ CPVRTypeDAB::~CPVRTypeDAB()
 }
 
 bool CPVRTypeDAB::Scan(std::vector<ChannelProps>& channelsFound,
+                       std::vector<ProviderProps>& providersFound,
                        const std::function<void(const uint32_t freq)>&& funcSetCenterFrequency,
                        const std::function<bool()>&& funcScanCancelled,
                        const std::function<void(unsigned int)>&& funcScanPercentage,
@@ -273,7 +276,7 @@ bool CPVRTypeDAB::Scan(std::vector<ChannelProps>& channelsFound,
 
     if (found)
     {
-      cnt = 20;
+      cnt = 50;
       while (cnt--)
       {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -299,6 +302,24 @@ bool CPVRTypeDAB::Scan(std::vector<ChannelProps>& channelsFound,
 
         auto& db = radio.GetDatabase();
 
+        std::string ensemble_label = db.ensemble.label;
+        kodi::tools::StringUtils::Trim(ensemble_label);
+
+        ProviderProps props;
+        props.id = db.ensemble.reference;
+        props.name = ensemble_label;
+        props.country = GetCountryName(db.ensemble.extended_country_code, db.ensemble.country_id,
+                                       CountryNameType::ISO3166_ALPHA2);
+
+        auto it =
+            std::find_if(providersFound.begin(), providersFound.end(), [props](const auto& entry) {
+              if ((props.id == entry.id) && (props.name == entry.name))
+                return true;
+              return false;
+            });
+        if (it == providersFound.end())
+          providersFound.push_back(props);
+
         uint32_t subchannelnumber = 1;
         for (auto& subchannel : db.subchannels)
         {
@@ -314,9 +335,7 @@ bool CPVRTypeDAB::Scan(std::vector<ChannelProps>& channelsFound,
             });
           }
           std::string service_label = service ? service->label : "";
-          std::string ensemble_label = db.ensemble.label;
           kodi::tools::StringUtils::Trim(service_label);
-          kodi::tools::StringUtils::Trim(ensemble_label);
 
           UTILS::log(UTILS::LOGLevel::INFO, __src_loc_cur__,
                      "DAB/DAB+ subchannel found: {} ({}) (channel: {}/{})", service_label,
@@ -327,17 +346,19 @@ bool CPVRTypeDAB::Scan(std::vector<ChannelProps>& channelsFound,
           props.channelnumber = freq.number;
           props.name = service_label;
           props.usereditname = service_label;
-          props.provider = kodi::tools::StringUtils::Trim(ensemble_label);
+          props.provider = ensemble_label;
           props.logourl = "";
           props.userlogourl = props.logourl;
           props.programmtype =
               service ? ProgrammType(service->programme_type) : ProgrammType::UNDEFINED;
-          //props.country = service
-          //                                 ? CountryCode(service->country_id)
-          //                                 : ProgrammType::UNDEFINED;
-          props.language = LanguageCode(service->language);
+          props.country = GetCountryName(service->extended_country_code, service->country_id,
+                                         CountryNameType::ISO3166_ALPHA2);
+          props.language = GetLanguageName(service->language, LanguageNameType::RFC5646);
           props.transportmode = TransportMode(service_component->transport_mode);
-          props.datatype = "AAC";
+          if (service_component->audio_service_type == AudioServiceType::DAB)
+            props.mimetype = "audio/mpeg";
+          else if (service_component->audio_service_type == AudioServiceType::DAB_PLUS)
+            props.mimetype = "audio/aac";
           props.visible = (TransportMode(service_component->transport_mode) ==
                            TransportMode::STREAM_MODE_AUDIO);
           funcScanChannelFound(props);
@@ -349,11 +370,11 @@ bool CPVRTypeDAB::Scan(std::vector<ChannelProps>& channelsFound,
                 if (props.subchannelnumber > 0 && entry.subchannelnumber > 0 &&
                     props.subchannelnumber != entry.subchannelnumber)
                   return false;
-                if (props.country != CountryCode::UNDEFINED &&
-                    entry.country != CountryCode::UNDEFINED && props.country != entry.country)
+                if (!props.country.empty() && !entry.country.empty() &&
+                    props.country != entry.country)
                   return false;
-                if (props.language != LanguageCode::UNDEFINED &&
-                    entry.language != LanguageCode::UNDEFINED && props.language != entry.language)
+                if (!props.language.empty() && !entry.language.empty() &&
+                    props.language != entry.language)
                   return false;
                 return true;
               });
@@ -483,24 +504,24 @@ std::shared_ptr<IPVRRadioSwitcher> CPVRTypeDAB::GetRadioSwitcher()
 void CPVRTypeDAB::AttachAudioPipelineToRadio(std::shared_ptr<AudioPipeline> audio_pipeline,
                                              BasicRadio& basic_radio)
 {
-  if (audio_pipeline == nullptr)
-    return;
-  basic_radio.On_Audio_Channel().Attach(
-      [audio_pipeline](subchannel_id_t subchannel_id, Basic_Audio_Channel& channel) {
-        auto& controls = channel.GetControls();
-        auto audio_source = std::make_shared<AudioPipelineSource>();
-        audio_pipeline->add_source(audio_source);
-        channel.OnAudioData().Attach([&controls, audio_source, audio_pipeline](
-                                         BasicAudioParams params, tcb::span<const uint8_t> buf) {
-          if (!controls.GetIsPlayAudio())
-            return;
-          auto frame_ptr = reinterpret_cast<const Frame<int16_t>*>(buf.data());
-          const size_t total_frames = buf.size() / sizeof(Frame<int16_t>);
-          auto frame_buf = tcb::span(frame_ptr, total_frames);
-          const bool is_blocking = audio_pipeline->get_sink() != nullptr;
-          audio_source->write(frame_buf, float(params.frequency), is_blocking);
-        });
-      });
+  //if (audio_pipeline == nullptr)
+  //  return;
+  //basic_radio.On_Audio_Channel().Attach(
+  //    [audio_pipeline](subchannel_id_t subchannel_id, Basic_Audio_Channel& channel) {
+  //      auto& controls = channel.GetControls();
+  //      auto audio_source = std::make_shared<AudioPipelineSource>();
+  //      audio_pipeline->add_source(audio_source);
+  //      channel.OnAudioData().Attach([&controls, audio_source, audio_pipeline](
+  //                                       BasicAudioParams params, tcb::span<const uint8_t> buf) {
+  //        if (!controls.GetIsPlayAudio())
+  //          return;
+  //        auto frame_ptr = reinterpret_cast<const Frame<int16_t>*>(buf.data());
+  //        const size_t total_frames = buf.size() / sizeof(Frame<int16_t>);
+  //        auto frame_buf = tcb::span(frame_ptr, total_frames);
+  //        const bool is_blocking = audio_pipeline->get_sink() != nullptr;
+  //        audio_source->write(frame_buf, float(params.frequency), is_blocking);
+  //      });
+  //    });
 }
 
 } // namespace INSTANCE

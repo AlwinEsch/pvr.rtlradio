@@ -35,9 +35,12 @@ private:
     std::unordered_map<subchannel_id_t, std::shared_ptr<Basic_Data_Packet_Channel>> m_data_packet_channels;
     Observable<subchannel_id_t, Basic_Audio_Channel&> m_obs_audio_channel;
     Observable<subchannel_id_t, Basic_Data_Packet_Channel&> m_obs_data_packet_channel;
-public:
+    std::atomic_bool m_ready{false};
+
+  public:
     explicit BasicRadio(const DAB_Parameters& params, const size_t nb_threads=0);
     ~BasicRadio();
+    bool Ready() const { return m_ready; }
     void Process(tcb::span<const viterbi_bit_t> buf);
     Basic_Audio_Channel* Get_Audio_Channel(const subchannel_id_t id);
     Basic_Data_Packet_Channel* Get_Data_Packet_Channel(const subchannel_id_t id);

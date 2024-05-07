@@ -25,6 +25,8 @@
 #include <functional>
 #include <thread>
 
+//#include <Windows.h>
+
 namespace RTLRADIO
 {
 namespace INSTANCE
@@ -62,6 +64,7 @@ CPVR::CPVR(const kodi::addon::IInstanceInfo& instance,
            std::shared_ptr<SETTINGS::CSettings> settings)
   : kodi::addon::CInstancePVRClient(instance), m_settings(settings)
 {
+  //Sleep(10000);
   UTILS::log(UTILS::LOGLevel::DEBUG, __src_loc_cur__, "Addon instance created");
 
   const std::vector<std::string> usedSettingValues = {"todo"};
@@ -104,7 +107,7 @@ bool CPVR::Init()
 
   return true;
 
-  m_audioPipeline = std::make_shared<AudioPipeline>();
+  //m_audioPipeline = std::make_shared<AudioPipeline>();
 
   // TODO: Make this in a way to allow all types and not only DAB
   m_activePVRType = std::make_shared<CPVRTypeDAB>(m_settings, m_deviceOutputBuffer);
@@ -219,6 +222,7 @@ bool CPVR::ProcessChannelScan()
         // Value "channelsFound" stores all found channels on scan to use later for storage in
         // database.
         std::vector<ChannelProps> channelsFound;
+        std::vector<ProviderProps> providersFound;
 
         // TODO check this works in all cases or e.g. this std::unique_ptr<GUI::CDialogFirstStart> m_firstStartDialog = nullptr; needed!
         std::shared_ptr<GUI::CDialogFirstStart> dialog = nullptr;
@@ -477,7 +481,7 @@ bool CPVR::ProcessChannelScan()
                   });
                 }
 
-                type->Scan(channelsFound, funcSetCenterFrequency, funcScanCancelled,
+                type->Scan(channelsFound, providersFound, funcSetCenterFrequency, funcScanCancelled,
                            funcScanPercentage, funcScanChannel, funcScanChannelFound);
 
                 if (input)
@@ -547,8 +551,11 @@ bool CPVR::ProcessChannelScan()
         {
           try
           {
+            std::sort(providersFound.begin(), providersFound.end(),
+                      [](const auto& a, const auto& b) { return (a.name.compare(b.name) < 0); });
+
             CConPool::handle dbhandle(m_connpool);
-            CConPoolPVR::ChannelScanSet(dbhandle, channelsFound);
+            CConPoolPVR::ChannelScanSet(dbhandle, channelsFound, providersFound, false);
 
             time_t currentTime = 0;
             time(&currentTime);
@@ -556,11 +563,12 @@ bool CPVR::ProcessChannelScan()
           }
           catch (sqlite_exception const& dbex)
           {
-            UTILS::log(UTILS::LOGLevel::ERROR, __src_loc_cur__,
-                       "Unable to set the channels database: {}", dbex.what());
+            HandleDBException(__src_loc_cur__, dbex);
             return;
           }
 
+          kodi::addon::CInstancePVRClient::TriggerChannelGroupsUpdate();
+          kodi::addon::CInstancePVRClient::TriggerProvidersUpdate();
           kodi::addon::CInstancePVRClient::TriggerChannelUpdate();
         }
 
@@ -754,8 +762,27 @@ PVR_ERROR CPVR::GetProvidersAmount(int& amount)
   if (m_channelscanThreadRunning)
     return PVR_ERROR::PVR_ERROR_REJECTED;
 
-  fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
-  amount = 1;
+  using namespace SETTINGS::DB;
+
+  try
+  {
+    amount = CConPoolPVR::GetProvidersCount(CConPool::handle(m_connpool));
+  }
+  catch (sqlite_exception const& dbex)
+  {
+    return HandleDBException(__src_loc_cur__, dbex, PVR_ERROR::PVR_ERROR_FAILED);
+  }
+  catch (std::exception& ex)
+  {
+    return HandleStdException(__src_loc_cur__, ex, PVR_ERROR::PVR_ERROR_FAILED);
+  }
+  catch (...)
+  {
+    return HandleGeneralException(__src_loc_cur__, PVR_ERROR::PVR_ERROR_FAILED);
+  }
+
+  UTILS::log(UTILS::LOGLevel::DEBUG, __src_loc_cur__, "Amount given: {}", amount);
+
   return PVR_ERROR::PVR_ERROR_NO_ERROR;
 }
 
@@ -764,12 +791,41 @@ PVR_ERROR CPVR::GetProviders(kodi::addon::PVRProvidersResultSet& results)
   if (m_channelscanThreadRunning)
     return PVR_ERROR::PVR_ERROR_REJECTED;
 
-  fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
-  kodi::addon::PVRProvider provider;
-  provider.SetUniqueId(1);
-  provider.SetName("DAB/DAB+");
-  provider.SetType(PVR_PROVIDER_TYPE_OTHER);
-  results.Add(provider);
+  using namespace SETTINGS::DB;
+
+  try
+  {
+    auto callback = [&](const struct ProviderProps& item) -> void {
+      kodi::addon::PVRProvider provider;
+
+      provider.SetUniqueId(item.id);
+      provider.SetName(item.name);
+      provider.SetType(PVR_PROVIDER_TYPE_AERIAL);
+      provider.SetCountries({item.country});
+      provider.SetLanguages({item.language});
+      provider.SetIconPath(item.logourl);
+
+      results.Add(provider);
+
+      UTILS::log(UTILS::LOGLevel::DEBUG, __src_loc_cur__,
+                 "Provider added: {} (Country: '{}', Language: '{}', Unique Id: {:X})", item.name,
+                 item.country, item.language, item.id);
+    };
+
+    CConPoolPVR::GetProviders(CConPool::handle(m_connpool), callback);
+  }
+  catch (sqlite_exception const& dbex)
+  {
+    return HandleDBException(__src_loc_cur__, dbex, PVR_ERROR::PVR_ERROR_FAILED);
+  }
+  catch (std::exception& ex)
+  {
+    return HandleStdException(__src_loc_cur__, ex, PVR_ERROR::PVR_ERROR_FAILED);
+  }
+  catch (...)
+  {
+    return HandleGeneralException(__src_loc_cur__, PVR_ERROR::PVR_ERROR_FAILED);
+  }
 
   return PVR_ERROR::PVR_ERROR_NO_ERROR;
 }
@@ -840,17 +896,49 @@ PVR_ERROR CPVR::GetChannelGroups(bool radio, kodi::addon::PVRChannelGroupsResult
 PVR_ERROR CPVR::GetChannelGroupMembers(const kodi::addon::PVRChannelGroup& group,
                                        kodi::addon::PVRChannelGroupMembersResultSet& results)
 {
+  // Only interested in radio channel groups
+  if (!group.GetIsRadio())
+    return PVR_ERROR::PVR_ERROR_NO_ERROR;
+
   if (m_channelscanThreadRunning)
     return PVR_ERROR::PVR_ERROR_REJECTED;
 
-  fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
-  kodi::addon::PVRChannelGroupMember kodiGroupMember;
-  kodiGroupMember.SetGroupName(group.GetGroupName());
-  kodiGroupMember.SetChannelUniqueId(1);
-  kodiGroupMember.SetChannelNumber(1);
-  kodiGroupMember.SetSubChannelNumber(1);
+  using namespace SETTINGS::DB;
 
-  results.Add(kodiGroupMember);
+  try
+  {
+    auto callback = [&](const struct ChannelProps& item) -> void {
+      kodi::addon::PVRChannelGroupMember member;
+
+      member.SetGroupName(group.GetGroupName());
+      member.SetChannelUniqueId(item.id.Id());
+      member.SetChannelNumber(item.channelnumber);
+      member.SetSubChannelNumber(item.subchannelnumber);
+      member.SetOrder(false);
+
+      results.Add(member);
+
+      UTILS::log(UTILS::LOGLevel::DEBUG, __src_loc_cur__,
+                 "Group member added: {}/{}: {} (Group name: {}, Unique Id: {:X})",
+                 member.GetChannelNumber(), member.GetSubChannelNumber(), item.name,
+                 member.GetGroupName(), member.GetChannelUniqueId());
+    };
+
+    const enum Modulation modulation = static_cast<Modulation>(group.GetPosition());
+    CConPoolPVR::GetChannels(CConPool::handle(m_connpool), modulation, false, callback);
+  }
+  catch (sqlite_exception const& dbex)
+  {
+    return HandleDBException(__src_loc_cur__, dbex, PVR_ERROR::PVR_ERROR_FAILED);
+  }
+  catch (std::exception& ex)
+  {
+    return HandleStdException(__src_loc_cur__, ex, PVR_ERROR::PVR_ERROR_FAILED);
+  }
+  catch (...)
+  {
+    return HandleGeneralException(__src_loc_cur__, PVR_ERROR::PVR_ERROR_FAILED);
+  }
 
   return PVR_ERROR::PVR_ERROR_NO_ERROR;
 }
@@ -905,6 +993,9 @@ PVR_ERROR CPVR::GetChannels(bool radio, kodi::addon::PVRChannelsResultSet& resul
       channel.SetChannelNumber(item.channelnumber);
       channel.SetSubChannelNumber(item.subchannelnumber);
       channel.SetIsHidden(!item.visible);
+      channel.SetMimeType(item.mimetype);
+      channel.SetHasArchive(false);
+      channel.SetClientProviderUid(item.provider_id);
       if (!item.usereditname.empty())
         channel.SetChannelName(item.usereditname);
       else if (!item.name.empty())
@@ -913,11 +1004,8 @@ PVR_ERROR CPVR::GetChannels(bool radio, kodi::addon::PVRChannelsResultSet& resul
         channel.SetIconPath(item.userlogourl);
       else if (!item.logourl.empty())
         channel.SetIconPath(item.logourl);
-      //channel.SetMimeType(...);
       //channel.SetOrder(...);
       //channel.SetEncryptionSystem(...);
-      //channel.SetHasArchive(...);
-      //channel.SetClientProviderUid(...);
 
       results.Add(channel);
 
@@ -963,10 +1051,35 @@ PVR_ERROR CPVR::GetChannelStreamProperties(const kodi::addon::PVRChannel& channe
   if (m_channelscanThreadRunning)
     return PVR_ERROR::PVR_ERROR_REJECTED;
 
-  fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
-  properties.emplace_back(PVR_STREAM_PROPERTY_INPUTSTREAM, "pvr.rtlradio");
-  properties.emplace_back("pvr.rtlradio.channel", std::to_string(channel.GetUniqueId()));
-  properties.emplace_back("pvr.rtlradio.provider", std::to_string(channel.GetClientProviderUid()));
+  try
+  {
+    using namespace std;
+
+    ChannelProps props(channel.GetUniqueId());
+
+    const auto id = to_string(channel.GetUniqueId());
+    properties.emplace_back(PVR_STREAM_PROPERTY_INPUTSTREAM, "pvr.rtlradio");
+    properties.emplace_back(PVR_STREAM_PROPERTY_ISREALTIMESTREAM, "true");
+    properties.emplace_back(PVR_STREAM_PROPERTY_MIMETYPE, channel.GetMimeType());
+    properties.emplace_back(PVR_STREAM_PROPERTY_INPUTSTREAM_INSTANCE_ID, id);
+    properties.emplace_back(PVR_STREAM_PROPERTY_UNIQUEID, id);
+    properties.emplace_back(PVR_STREAM_PROPERTY_FREQUENCY, to_string(props.frequency));
+    properties.emplace_back(PVR_STREAM_PROPERTY_SUBCHANNEL, to_string(props.subchannelnumber));
+    properties.emplace_back(PVR_STREAM_PROPERTY_MODULATION, to_string(uint32_t(props.modulation)));
+
+    UTILS::log(UTILS::LOGLevel::DEBUG, __src_loc_cur__,
+               "Properties for: {} (Freq.: {}, Subchannel: {}, Modulation: {})",
+               channel.GetChannelName(), props.frequency, props.subchannelnumber,
+               uint8_t(props.modulation));
+  }
+  catch (std::exception& ex)
+  {
+    return HandleStdException(__src_loc_cur__, ex, PVR_ERROR::PVR_ERROR_FAILED);
+  }
+  catch (...)
+  {
+    return HandleGeneralException(__src_loc_cur__, PVR_ERROR::PVR_ERROR_FAILED);
+  }
 
   return PVR_ERROR::PVR_ERROR_NO_ERROR;
 }
@@ -976,7 +1089,7 @@ PVR_ERROR CPVR::GetSignalStatus(int channelUid, kodi::addon::PVRSignalStatus& si
   if (m_channelscanThreadRunning)
     return PVR_ERROR::PVR_ERROR_REJECTED;
 
-  fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
+  //fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
   return PVR_ERROR::PVR_ERROR_NO_ERROR;
 }
 
@@ -985,7 +1098,28 @@ PVR_ERROR CPVR::DeleteChannel(const kodi::addon::PVRChannel& channel)
   if (m_channelscanThreadRunning)
     return PVR_ERROR::PVR_ERROR_REJECTED;
 
-  fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
+  using namespace SETTINGS::DB;
+
+  try
+  {
+    CConPoolPVR::ChannelDelete(CConPool::handle(m_connpool), channel.GetUniqueId());
+  }
+  catch (sqlite_exception const& dbex)
+  {
+    return HandleDBException(__src_loc_cur__, dbex, PVR_ERROR::PVR_ERROR_FAILED);
+  }
+  catch (std::exception& ex)
+  {
+    return HandleStdException(__src_loc_cur__, ex, PVR_ERROR::PVR_ERROR_FAILED);
+  }
+  catch (...)
+  {
+    return HandleGeneralException(__src_loc_cur__, PVR_ERROR::PVR_ERROR_FAILED);
+  }
+
+  UTILS::log(UTILS::LOGLevel::DEBUG, __src_loc_cur__, "Channel deleted: {}",
+             channel.GetChannelName());
+
   return PVR_ERROR::PVR_ERROR_NO_ERROR;
 }
 
@@ -994,7 +1128,29 @@ PVR_ERROR CPVR::RenameChannel(const kodi::addon::PVRChannel& channel)
   if (m_channelscanThreadRunning)
     return PVR_ERROR::PVR_ERROR_REJECTED;
 
-  fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
+  using namespace SETTINGS::DB;
+
+  try
+  {
+    CConPoolPVR::ChannelRename(CConPool::handle(m_connpool), channel.GetUniqueId(),
+                               channel.GetChannelName());
+  }
+  catch (sqlite_exception const& dbex)
+  {
+    return HandleDBException(__src_loc_cur__, dbex, PVR_ERROR::PVR_ERROR_FAILED);
+  }
+  catch (std::exception& ex)
+  {
+    return HandleStdException(__src_loc_cur__, ex, PVR_ERROR::PVR_ERROR_FAILED);
+  }
+  catch (...)
+  {
+    return HandleGeneralException(__src_loc_cur__, PVR_ERROR::PVR_ERROR_FAILED);
+  }
+
+  UTILS::log(UTILS::LOGLevel::DEBUG, __src_loc_cur__, "Channel renamed: {}",
+             channel.GetChannelName());
+
   return PVR_ERROR::PVR_ERROR_NO_ERROR;
 }
 

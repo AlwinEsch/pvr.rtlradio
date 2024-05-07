@@ -14,6 +14,7 @@ namespace INSTANCE
 
 bool CPVRTypeHD::ScanChannels(
     std::vector<ChannelProps> channelsFound,
+    std::vector<ProviderProps>& providersFound,
     const std::function<bool()>&& funcScanCancelled,
     const std::function<void(unsigned int)>&& funcScanPercentage,
     const std::function<void(const std::string& channel)>&& funcScanChannel,
@@ -36,6 +37,7 @@ CPVRTypeHD::CPVRTypeHD(const std::shared_ptr<SETTINGS::CSettings>& settings,
 }
 
 bool CPVRTypeHD::Scan(std::vector<ChannelProps>& channelsFound,
+                      std::vector<ProviderProps>& providersFound,
                       const std::function<void(const uint32_t freq)>&& funcSetCenterFrequency,
                       const std::function<bool()>&& funcScanCancelled,
                       const std::function<void(unsigned int)>&& funcScanPercentage,

@@ -4,7 +4,7 @@
 #include <vector>
 
 template <typename ... T>
-class Observable 
+class Observable
 {
 private:
     using Observer = std::function<void(T...)>;

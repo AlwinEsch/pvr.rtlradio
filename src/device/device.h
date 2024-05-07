@@ -57,12 +57,12 @@ public:
   bool IsRunning() const { return m_isRunning; }
   void SetIsRunning(bool running) { m_isRunning = running; }
   const DeviceInfo& GetDeviceInfo() { return m_info; } // GetDescriptor
-  int GetBlockSize(void) { return m_blockSize; }
-  const auto& GetGainList(void) { return m_gainList; }
-  bool GetIsGainManual(void) { return m_isGainManual; }
-  float GetSelectedGain(void) { return m_selectedGain; }
-  uint32_t GetSelectedFrequency(void) { return m_selectedFrequency; }
-  const auto& GetSelectedFrequencyLabel(void) { return m_selectedFrequencyLabel; }
+  int GetBlockSize() const { return m_blockSize; }
+  const auto& GetGainList() { return m_gainList; }
+  bool GetIsGainManual() const { return m_isGainManual; }
+  float GetSelectedGain() const { return m_selectedGain; }
+  uint32_t GetSelectedFrequency() const { return m_selectedFrequency; }
+  const auto& GetSelectedFrequencyLabel() const { return m_selectedFrequencyLabel; }
 
   void SetNearestGain(const float target_gain);
   void SetCenterFrequency(const uint32_t freq);

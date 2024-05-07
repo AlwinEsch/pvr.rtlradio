@@ -7,26 +7,25 @@
 
 #pragma once
 
-#include <kodi/addon-instance/Inputstream.h>
+#include "inputstream_type_i.h"
 
 namespace RTLRADIO
 {
 namespace INSTANCE
 {
 
-class CInputstreamBase;
-
-class CInputstream : public kodi::addon::CInstanceInputStream
+class CInputstreamTypeMW : public IInputstreamType
 {
 public:
-  CInputstream(const kodi::addon::IInstanceInfo& instance, CInputstreamBase& base);
-  ~CInputstream();
+  CInputstreamTypeMW(std::shared_ptr<SETTINGS::CSettings> settings,
+                     const std::shared_ptr<AudioPipeline>& audioPipeline);
+  ~CInputstreamTypeMW();
 
-  void GetCapabilities(kodi::addon::InputstreamCapabilities& capabilities) override;
-  bool Open(const kodi::addon::InputstreamProperty& props) override;
+  bool Open(unsigned int uniqueId,
+            unsigned int frequency,
+            unsigned int subchannel,
+            IInputstreamType::AllocateDemuxPacketCB allocPacket) override;
   void Close() override;
-
-  bool IsRealTimeStream() override { return true; }
 
   bool GetStreamIds(std::vector<unsigned int>& ids) override;
   bool GetStream(int streamid, kodi::addon::InputstreamInfo& stream) override;
@@ -36,9 +35,11 @@ public:
   void DemuxAbort() override;
   void DemuxFlush() override;
   DEMUX_PACKET* DemuxRead() override;
+  bool GetTimes(kodi::addon::InputstreamTimes& times) override;
+
+  std::string_view GetName() const override { return "MW radio"; }
 
 private:
-  CInputstreamBase& m_base;
 };
 
 } // namespace INSTANCE

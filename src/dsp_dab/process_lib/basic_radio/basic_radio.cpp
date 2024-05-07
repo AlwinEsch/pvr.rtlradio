@@ -62,12 +62,14 @@ void BasicRadio::Process(tcb::span<const viterbi_bit_t> buf) {
     m_thread_pool->WaitAll();
 
     UpdateAfterProcessing();
+
+    m_ready.store(true);
 }
 
 Basic_Audio_Channel* BasicRadio::Get_Audio_Channel(const subchannel_id_t id) {
     auto res = m_audio_channels.find(id);
     if (res == m_audio_channels.end()) {
-        return nullptr; 
+        return nullptr;
     }
     return res->second.get();
 }
@@ -75,7 +77,7 @@ Basic_Audio_Channel* BasicRadio::Get_Audio_Channel(const subchannel_id_t id) {
 Basic_Data_Packet_Channel* BasicRadio::Get_Data_Packet_Channel(const subchannel_id_t id) {
     auto res = m_data_packet_channels.find(id);
     if (res == m_data_packet_channels.end()) {
-        return nullptr; 
+        return nullptr;
     }
     return res->second.get();
 }
@@ -101,7 +103,7 @@ void BasicRadio::UpdateAfterProcessing() {
         if (m_msc_runners.find(subchannel.id) != m_msc_runners.end()) {
             continue;
         }
- 
+
         const ServiceComponent* service_component = nullptr;
         for (auto& e: m_dab_database->service_components) {
             if (e.subchannel_id == subchannel.id) {
@@ -136,8 +138,8 @@ void BasicRadio::UpdateAfterProcessing() {
             m_audio_channels.insert({ subchannel.id, channel });
             m_obs_audio_channel.Notify(subchannel.id, *channel);
             continue;
-        } 
- 
+        }
+
         // DOC: EN 300 401
         // Clause: 5.3.5 FEC for MSC packet mode
         // Data packet channels require the FEC scheme to be defined for outer encoding

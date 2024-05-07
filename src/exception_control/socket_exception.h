@@ -14,7 +14,7 @@
 #include <sstream>
 #include <string>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include "win32_exception.h"
 #endif
 
@@ -41,7 +41,7 @@ public:
                           location.column(), location.function_name(),
                           fmt::format(format, std::forward<Args>(args)...));
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     stream << " (ERROR: " << win32_exception(static_cast<DWORD>(WSAGetLastError())) << ")";
 #elif __clang__
     int code = errno;

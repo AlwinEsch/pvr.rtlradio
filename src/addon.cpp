@@ -8,6 +8,7 @@
 #include "addon.h"
 
 #include "instance_inputstream/inputstream.h"
+#include "instance_inputstream/inputstream_base.h"
 #include "instance_pvr/pvr.h"
 #include "settings/settings.h"
 #include "utils/log.h"
@@ -18,11 +19,10 @@ namespace RTLRADIO
 CAddon::CAddon()
 {
   m_settings = std::make_shared<SETTINGS::CSettings>();
+  m_inputstreamBase = std::make_unique<INSTANCE::CInputstreamBase>(m_settings);
 }
 
-CAddon::~CAddon()
-{
-}
+CAddon::~CAddon() = default;
 
 ADDON_STATUS CAddon::Create()
 {
@@ -52,7 +52,7 @@ ADDON_STATUS CAddon::CreateInstance(const kodi::addon::IInstanceInfo& instance,
   }
   else if (instance.IsType(ADDON_INSTANCE_INPUTSTREAM))
   {
-    hdl = new INSTANCE::CInputstream(instance, m_settings);
+    hdl = new INSTANCE::CInputstream(instance, *m_inputstreamBase.get());
     return ADDON_STATUS_OK;
   }
 

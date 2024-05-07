@@ -82,9 +82,13 @@ void bind_parameter(sqlite3_stmt* statement, int& paramindex, char const* value)
 void bind_parameter(sqlite3_stmt* statement, int& paramindex, int value);
 void bind_parameter(sqlite3_stmt* statement, int& paramindex, unsigned int value);
 void bind_parameter(sqlite3_stmt* statement, int& paramindex, time_t value);
+bool try_execute_non_query(sqlite3* instance, char const* sql);
 
 template<typename... _parameters>
-int execute_non_query(sqlite3* instance, char const* sql, _parameters&&... parameters)
+int execute_non_query(const nostd::source_location location,
+                      sqlite3* instance,
+                      char const* sql,
+                      _parameters&&... parameters)
 {
   sqlite3_stmt* statement; // SQL statement to execute
   int paramindex = 1; // Bound parameter index value
@@ -100,7 +104,7 @@ int execute_non_query(sqlite3* instance, char const* sql, _parameters&&... param
   // Prepare the statement
   int result = sqlite3_prepare_v2(instance, sql, -1, &statement, nullptr);
   if (result != SQLITE_OK)
-    throw sqlite_exception(__src_loc_cur__, result, sqlite3_errmsg(instance));
+    throw sqlite_exception(location, result, sqlite3_errmsg(instance));
 
   try
   {
@@ -117,7 +121,7 @@ int execute_non_query(sqlite3* instance, char const* sql, _parameters&&... param
 
     // The final result from sqlite3_step should be SQLITE_DONE
     if (result != SQLITE_DONE)
-      throw sqlite_exception(__src_loc_cur__, result, sqlite3_errmsg(instance));
+      throw sqlite_exception(location, result, sqlite3_errmsg(instance));
 
     // Finalize the statement
     sqlite3_finalize(statement);
@@ -134,7 +138,10 @@ int execute_non_query(sqlite3* instance, char const* sql, _parameters&&... param
 }
 
 template<typename... _parameters>
-int execute_scalar_int(sqlite3* instance, char const* sql, _parameters&&... parameters)
+int execute_scalar_int(const nostd::source_location location,
+                       sqlite3* instance,
+                       char const* sql,
+                       _parameters&&... parameters)
 {
   sqlite3_stmt* statement; // SQL statement to execute
   int paramindex = 1; // Bound parameter index value
@@ -151,7 +158,7 @@ int execute_scalar_int(sqlite3* instance, char const* sql, _parameters&&... para
   // Prepare the statement
   int result = sqlite3_prepare_v2(instance, sql, -1, &statement, nullptr);
   if (result != SQLITE_OK)
-    throw sqlite_exception(__src_loc_cur__, result, sqlite3_errmsg(instance));
+    throw sqlite_exception(location, result, sqlite3_errmsg(instance));
 
   try
   {
@@ -167,7 +174,7 @@ int execute_scalar_int(sqlite3* instance, char const* sql, _parameters&&... para
     if (result == SQLITE_ROW)
       value = sqlite3_column_int(statement, 0);
     else if (result != SQLITE_DONE)
-      throw sqlite_exception(__src_loc_cur__, result, sqlite3_errmsg(instance));
+      throw sqlite_exception(location, result, sqlite3_errmsg(instance));
 
     // Finalize the statement
     sqlite3_finalize(statement);
@@ -184,7 +191,10 @@ int execute_scalar_int(sqlite3* instance, char const* sql, _parameters&&... para
 }
 
 template<typename... _parameters>
-std::string execute_scalar_string(sqlite3* instance, char const* sql, _parameters&&... parameters)
+std::string execute_scalar_string(const nostd::source_location location,
+                                  sqlite3* instance,
+                                  char const* sql,
+                                  _parameters&&... parameters)
 {
   sqlite3_stmt* statement; // SQL statement to execute
   int paramindex = 1; // Bound parameter index value
@@ -201,7 +211,7 @@ std::string execute_scalar_string(sqlite3* instance, char const* sql, _parameter
   // Prepare the statement
   int result = sqlite3_prepare_v2(instance, sql, -1, &statement, nullptr);
   if (result != SQLITE_OK)
-    throw sqlite_exception(__src_loc_cur__, result, sqlite3_errmsg(instance));
+    throw sqlite_exception(location, result, sqlite3_errmsg(instance));
 
   try
   {
@@ -221,7 +231,7 @@ std::string execute_scalar_string(sqlite3* instance, char const* sql, _parameter
         value.assign(ptr);
     }
     else if (result != SQLITE_DONE)
-      throw sqlite_exception(__src_loc_cur__, result, sqlite3_errmsg(instance));
+      throw sqlite_exception(location, result, sqlite3_errmsg(instance));
 
     // Finalize the statement
     sqlite3_finalize(statement);
