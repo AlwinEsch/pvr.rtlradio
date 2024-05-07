@@ -13,3 +13,4 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(fmt REQUIRED_VARS LIBFMT_LIBRARIES LIBFMT_INCLUDE_DIRS)
 
 mark_as_advanced(LIBFMT_INCLUDE_DIRS LIBFMT_LIBRARIES)
+

@@ -62,7 +62,7 @@ public:
   virtual void set_device(std::shared_ptr<DEVICE::CDevice> device) = 0;
 };
 
-class CPVR : public kodi::addon::CInstancePVRClient
+class ATTR_DLL_LOCAL CPVR : public kodi::addon::CInstancePVRClient
 {
 public:
   CPVR(const kodi::addon::IInstanceInfo& instance, std::shared_ptr<SETTINGS::CSettings> settings);

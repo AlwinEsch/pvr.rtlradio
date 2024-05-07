@@ -11,7 +11,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-#ifdef HAS_GLES
+#if !defined(TARGET_WINDOWS) && !defined(TARGET_ANDROID) && !defined(TARGET_DARWIN)
 #include <EGL/egl.h>
 #endif
 

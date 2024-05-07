@@ -4,6 +4,7 @@
 #include "./ring_buffer.h"
 #include "utility/span.h"
 
+#include <atomic>
 #include <condition_variable>
 #include <functional>
 #include <memory>

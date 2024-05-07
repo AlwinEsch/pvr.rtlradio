@@ -16,7 +16,7 @@ namespace INSTANCE
 
 class CInputstreamBase;
 
-class CInputstream : public kodi::addon::CInstanceInputStream
+class ATTR_DLL_LOCAL CInputstream : public kodi::addon::CInstanceInputStream
 {
 public:
   CInputstream(const kodi::addon::IInstanceInfo& instance, CInputstreamBase& base);

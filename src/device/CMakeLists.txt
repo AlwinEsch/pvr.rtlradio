@@ -1,18 +1,24 @@
 set(SOURCE_NAME code_src_device)
 
-set(SOURCES device.cpp
-            device_file.cpp
-            device_list.cpp
-            device_tcp.cpp
-            $<$<BOOL:${USB_DEVICE_SUPPORT}>:device_usb.cpp>)
+set(SOURCES
+    device.cpp
+    device_file.cpp
+    device_list.cpp
+    device_tcp.cpp
+    $<$<BOOL:${USB_DEVICE_SUPPORT}>:device_usb.cpp>
+)
 
-set(HEADERS device.h
-            device_file.h
-            device_list.h
-            device_tcp.h
-            $<$<BOOL:${USB_DEVICE_SUPPORT}>:device_usb.h>)
+set(HEADERS
+    device.h
+    device_file.h
+    device_list.h
+    device_tcp.h
+    $<$<BOOL:${USB_DEVICE_SUPPORT}>:device_usb.h>
+)
 
 add_library(${SOURCE_NAME} OBJECT ${SOURCES} ${HEADERS})
+
+set_target_properties(${SOURCE_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 target_include_directories(${SOURCE_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src
                                           PRIVATE ${KODI_INCLUDE_DIRS}
                                           PRIVATE ${LIBFMT_INCLUDE_DIRS}

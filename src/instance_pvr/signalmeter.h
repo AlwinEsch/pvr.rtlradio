@@ -11,6 +11,7 @@
 #include "props.h"
 #include "utils/span.h"
 
+#include <cmath>
 #include <functional>
 #include <memory>
 

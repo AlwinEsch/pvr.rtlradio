@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <unordered_map>

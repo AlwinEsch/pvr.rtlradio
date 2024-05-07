@@ -5,8 +5,6 @@
  *  See LICENSE.md for more information.
  */
 
-#pragma once
-
 #include "dialog_first_start.h"
 
 #include "device/device_list.h"

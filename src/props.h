@@ -9,6 +9,7 @@
 
 #include <map>
 #include <memory>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -510,7 +511,7 @@ struct ChannelProps
   {
   }
 
-  bool ChannelProps::operator==(const ChannelProps& other) const
+  bool operator==(const ChannelProps& other) const
   {
     return (channelnumber == other.channelnumber) && (subchannelnumber == other.subchannelnumber) &&
            (frequency == other.frequency) && (modulation == other.modulation) &&

@@ -22,6 +22,8 @@ set(HEADERS
 )
 
 add_library(${SOURCE_NAME} OBJECT ${SOURCES} ${HEADERS})
+
+set_target_properties(${SOURCE_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 target_include_directories(${SOURCE_NAME} PRIVATE ${KODI_INCLUDE_DIRS}
                                           PRIVATE ${LIBFMT_INCLUDE_DIRS}
                                           PRIVATE ${PROJECT_SOURCE_DIR}/src)

@@ -5,14 +5,13 @@
  *  See LICENSE.md for more information.
  */
 
-#pragma once
-
 #include "signalmeter.h"
 
 #include "exception_control/string_exception.h"
 #include "utils/align.h"
 
 #include <cassert>
+#include <cstring>
 
 namespace RTLRADIO
 {

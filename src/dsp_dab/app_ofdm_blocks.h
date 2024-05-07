@@ -9,6 +9,7 @@
 #include "utils/raw_iq.h"
 #include "utils/span.h"
 
+#include <atomic>
 #include <complex>
 #include <memory>
 #include <stddef.h>

@@ -26,7 +26,8 @@
 
 #include "utils/source_location.hpp"
 
-#include <exception>
+//#include <exception>
+#include <stdexcept>
 #include <string>
 
 #include <sqlite3.h>

@@ -40,7 +40,7 @@ enum class RegionCode : uint8_t
   EUROPE = 3, // FM/DAB
 };
 
-class CSettings
+class ATTR_DLL_LOCAL CSettings
 {
 public:
   CSettings();

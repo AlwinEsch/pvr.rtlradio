@@ -9,6 +9,7 @@
 
 #include "utils/span.h"
 
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <mutex>

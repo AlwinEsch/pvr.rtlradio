@@ -25,7 +25,7 @@ namespace SETTINGS
 class CSettings;
 } // namespace SETTINGS
 
-class CAddon : public kodi::addon::CAddonBase
+class ATTR_DLL_LOCAL CAddon : public kodi::addon::CAddonBase
 {
 public:
   CAddon();

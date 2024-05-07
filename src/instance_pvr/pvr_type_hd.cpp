@@ -20,7 +20,6 @@ bool CPVRTypeHD::ScanChannels(
     const std::function<void(const std::string& channel)>&& funcScanChannel,
     const std::function<void(const ChannelProps&)>&& funcScanChannelFound)
 {
-  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
   return true;
 }
 

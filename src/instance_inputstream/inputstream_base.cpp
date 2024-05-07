@@ -5,8 +5,6 @@
  *  See LICENSE.md for more information.
  */
 
-#pragma once
-
 #include "inputstream_base.h"
 
 #include "exception_control/exception.h"

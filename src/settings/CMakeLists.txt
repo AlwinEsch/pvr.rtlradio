@@ -1,14 +1,20 @@
 set(SOURCE_NAME code_src_settings)
 
-set(SOURCES database.cpp
-            database_control.cpp
-            settings.cpp)
+set(SOURCES
+    database.cpp
+    database_control.cpp
+    settings.cpp
+)
 
-set(HEADERS database.h
-            database_control.h
-            settings.h)
+set(HEADERS
+    database.h
+    database_control.h
+    settings.h
+)
 
 add_library(${SOURCE_NAME} OBJECT ${SOURCES} ${HEADERS})
+
+set_target_properties(${SOURCE_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 target_include_directories(${SOURCE_NAME} PRIVATE ${KODI_INCLUDE_DIRS}
                                           PRIVATE ${LIBFMT_INCLUDE_DIRS}
                                           PRIVATE ${PROJECT_SOURCE_DIR}/src)
